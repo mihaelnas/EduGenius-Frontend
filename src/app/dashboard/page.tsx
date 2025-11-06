@@ -1,55 +1,53 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, School, Book } from 'lucide-react';
+'use client';
 
-const stats = [
-    { title: "Total Étudiants", value: "1,250", icon: <Users className="h-4 w-4 text-muted-foreground" /> },
-    { title: "Total Enseignants", value: "80", icon: <Users className="h-4 w-4 text-muted-foreground" /> },
-    { title: "Total Classes", value: "45", icon: <School className="h-4 w-4 text-muted-foreground" /> },
-    { title: "Total Matières", value: "30", icon: <Book className="h-4 w-4 text-muted-foreground" /> },
-];
+import React from 'react';
+import { AdminDashboard } from '@/components/dashboards/admin-dashboard';
+import { TeacherDashboard } from '@/components/dashboards/teacher-dashboard';
+import { StudentDashboard } from '@/components/dashboards/student-dashboard';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const useUser = () => {
+  const [user, setUser] = React.useState<{ name: string | null, role: string | null }>({ name: null, role: null });
+
+  React.useEffect(() => {
+    const role = localStorage.getItem('userRole');
+    const name = localStorage.getItem('userName');
+    setUser({ name, role });
+  }, []);
+
+  return user;
+};
 
 export default function DashboardPage() {
-  return (
-    <>
-      <h1 className="text-3xl font-bold tracking-tight font-headline">
-        Bienvenue sur votre tableau de bord
-      </h1>
-      <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
-        {stats.map((stat) => (
-             <Card key={stat.title}>
-             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-               <CardTitle className="text-sm font-medium">
-                 {stat.title}
-               </CardTitle>
-               {stat.icon}
-             </CardHeader>
-             <CardContent>
-               <div className="text-2xl font-bold">{stat.value}</div>
-               <p className="text-xs text-muted-foreground">
-                 +20.1% depuis le mois dernier
-               </p>
-             </CardContent>
-           </Card>
-        ))}
-      </div>
-       <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
-            <Card className="xl:col-span-2">
-              <CardHeader>
-                <CardTitle>Activité Récente</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p>Le fil d'activité sera affiché ici.</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Analyses de la Plateforme</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p>Les graphiques et diagrammes seront affichés ici.</p>
-              </CardContent>
-            </Card>
-          </div>
-    </>
-  );
+  const { name, role } = useUser();
+
+  const renderDashboard = () => {
+    switch (role) {
+      case 'admin':
+        return <AdminDashboard userName={name} />;
+      case 'teacher':
+        return <TeacherDashboard userName={name} />;
+      case 'student':
+        return <StudentDashboard userName={name} />;
+      default:
+        // Skeleton loader while role is being determined
+        return (
+          <>
+            <Skeleton className="h-8 w-1/2" />
+            <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
+              <Skeleton className="h-28" />
+              <Skeleton className="h-28" />
+              <Skeleton className="h-28" />
+              <Skeleton className="h-28" />
+            </div>
+            <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
+                <Skeleton className="h-80 xl:col-span-2" />
+                <Skeleton className="h-80" />
+            </div>
+          </>
+        );
+    }
+  };
+
+  return <>{renderDashboard()}</>;
 }
