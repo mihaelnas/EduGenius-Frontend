@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -19,9 +20,13 @@ const statusVariant: { [key in ScheduleEvent['status']]: 'default' | 'secondary'
 };
 
 export default function TeacherSchedulePage() {
-  const [date, setDate] = React.useState<Date | undefined>(new Date());
+  const [date, setDate] = React.useState<Date | undefined>(undefined);
   const [schedule, setSchedule] = React.useState<ScheduleEvent[]>(initialSchedule);
   const [isAddEventDialogOpen, setIsAddEventDialogOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    setDate(new Date());
+  }, []);
 
   const selectedDateStr = date ? format(date, 'yyyy-MM-dd') : '';
   const todaysEvents = schedule.filter(event => event.date === selectedDateStr);
@@ -76,6 +81,8 @@ export default function TeacherSchedulePage() {
                 onSelect={setDate}
                 className="rounded-md"
                 locale={fr}
+                disabled={(d) => d < new Date('1900-01-01')}
+                initialFocus
               />
             </CardContent>
           </Card>
