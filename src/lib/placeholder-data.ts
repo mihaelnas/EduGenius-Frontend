@@ -69,6 +69,7 @@ export type Course = {
   id: string;
   title: string;
   content: string;
+  subject: string;
   subjectId: string;
   resources: Resource[];
   createdAt: string;
@@ -204,7 +205,8 @@ export const subjects: Subject[] = [
 
 export const courses: Course[] = [
     { 
-        id: 'crs_1', 
+        id: 'crs_1',
+        subject: 'Mathématiques Avancées',
         subjectId: 'sub_1', 
         title: 'Chapitre 1: Algèbre Linéaire', 
         content: 'Ce chapitre couvre les bases des espaces vectoriels, des matrices et des déterminants.',
@@ -215,7 +217,8 @@ export const courses: Course[] = [
         createdAt: '2023-10-10'
     },
     { 
-        id: 'crs_2', 
+        id: 'crs_2',
+        subject: 'Mathématiques Avancées',
         subjectId: 'sub_1', 
         title: 'Chapitre 2: Analyse Complexe', 
         content: 'Introduction aux nombres complexes et aux fonctions de variables complexes.',
@@ -223,7 +226,8 @@ export const courses: Course[] = [
         createdAt: '2023-10-15'
     },
     { 
-        id: 'crs_3', 
+        id: 'crs_3',
+        subject: 'Physique Quantique', 
         subjectId: 'sub_2', 
         title: 'Unité 1: Postulats de la mécanique quantique', 
         content: 'Une exploration des six postulats fondamentaux de la mécanique quantique.',
@@ -233,7 +237,8 @@ export const courses: Course[] = [
         createdAt: '2023-10-12'
     },
     { 
-        id: 'crs_4', 
+        id: 'crs_4',
+        subject: 'Littérature Comparée',
         subjectId: 'sub_3', 
         title: 'Les Sonnets de Shakespeare', 
         content: 'Analyse approfondie des thèmes et des structures dans les sonnets de Shakespeare.',
