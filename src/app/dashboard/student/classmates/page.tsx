@@ -5,8 +5,8 @@ import { students } from '@/lib/placeholder-data';
 export default function StudentClassmatesPage() {
   return (
      <>
-      <h1 className="text-3xl font-bold tracking-tight font-headline">My Classmates</h1>
-      <p className="text-muted-foreground">Here are the other students in Grade 11 - Section B.</p>
+      <h1 className="text-3xl font-bold tracking-tight font-headline">Mes Camarades de Classe</h1>
+      <p className="text-muted-foreground">Voici les autres étudiants de la classe de 1ère - Section B.</p>
        <div className="mt-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
         {students.map((student, index) => (
           <Card key={student.id} className="text-center">

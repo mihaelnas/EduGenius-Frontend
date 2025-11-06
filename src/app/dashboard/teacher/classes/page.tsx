@@ -8,23 +8,23 @@ export default function TeacherClassesPage() {
   const teacherClasses = classes.filter(c => c.teacher);
   return (
     <>
-      <h1 className="text-3xl font-bold tracking-tight font-headline">My Classes</h1>
+      <h1 className="text-3xl font-bold tracking-tight font-headline">Mes Classes</h1>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {teacherClasses.map((c) => (
           <Card key={c.id} className="flex flex-col">
             <CardHeader>
               <CardTitle className="font-headline">{c.name}</CardTitle>
-              <CardDescription>Taught by {c.teacher}</CardDescription>
+              <CardDescription>Enseigné par {c.teacher}</CardDescription>
             </CardHeader>
             <CardContent className="flex-grow">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Users className="h-4 w-4" />
-                <span>{c.studentCount} students</span>
+                <span>{c.studentCount} étudiants</span>
               </div>
             </CardContent>
             <div className="p-6 pt-0">
                 <Button asChild className="w-full">
-                    <Link href="#">View Class <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                    <Link href="#">Voir la classe <ArrowRight className="ml-2 h-4 w-4" /></Link>
                 </Button>
             </div>
           </Card>

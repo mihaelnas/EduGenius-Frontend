@@ -4,27 +4,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { PlusCircle } from 'lucide-react';
 
 const scheduleItems = [
-    { time: '09:00 AM - 10:00 AM', class: 'Grade 10 - Section A', subject: 'Mathematics' },
-    { time: '11:00 AM - 12:00 PM', class: 'Grade 12 - Physics', subject: 'Physics' },
-    { time: '02:00 PM - 03:00 PM', class: 'Grade 10 - Section A', subject: 'Mathematics' },
+    { time: '09:00 - 10:00', class: 'Terminale - Section A', subject: 'Mathématiques' },
+    { time: '11:00 - 12:00', class: 'Terminale - Physique', subject: 'Physique' },
+    { time: '14:00 - 15:00', class: 'Terminale - Section A', subject: 'Mathématiques' },
 ];
 
 export default function TeacherSchedulePage() {
   return (
     <>
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight font-headline">My Schedule</h1>
+        <h1 className="text-3xl font-bold tracking-tight font-headline">Mon Emploi du temps</h1>
         <Button>
           <PlusCircle className="mr-2 h-4 w-4" />
-          Add Event
+          Ajouter un événement
         </Button>
       </div>
       <div className="grid gap-8 md:grid-cols-3">
         <div className="md:col-span-2">
             <Card>
                 <CardHeader>
-                    <CardTitle>Today's Schedule</CardTitle>
-                    <CardDescription>Here are your classes for today, April 25, 2024.</CardDescription>
+                    <CardTitle>Emploi du temps du jour</CardTitle>
+                    <CardDescription>Voici vos cours pour aujourd'hui, 25 Avril 2024.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">
@@ -50,6 +50,7 @@ export default function TeacherSchedulePage() {
                     mode="single"
                     selected={new Date()}
                     className="rounded-md"
+                    locale={(await import('date-fns/locale/fr')).default}
                 />
             </CardContent>
           </Card>

@@ -12,17 +12,17 @@ export default function AdminClassesPage() {
       <CardHeader>
         <div className="flex items-center justify-between gap-4">
             <div>
-                <CardTitle className="font-headline">Class Management</CardTitle>
-                <CardDescription>Manage classes, assign teachers, and enroll students.</CardDescription>
+                <CardTitle className="font-headline">Gestion des Classes</CardTitle>
+                <CardDescription>Gérez les classes, assignez des enseignants et inscrivez des étudiants.</CardDescription>
             </div>
             <div className="flex items-center gap-2">
                  <div className="relative">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Search classes..." className="pl-8 sm:w-[300px]" />
+                    <Input placeholder="Rechercher des classes..." className="pl-8 sm:w-[300px]" />
                 </div>
                 <Button>
                     <PlusCircle className="mr-2 h-4 w-4" />
-                    Add Class
+                    Ajouter une classe
                 </Button>
             </div>
         </div>
@@ -31,10 +31,10 @@ export default function AdminClassesPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Class Name</TableHead>
-              <TableHead>Teacher</TableHead>
-              <TableHead>Students</TableHead>
-              <TableHead>Created At</TableHead>
+              <TableHead>Nom de la classe</TableHead>
+              <TableHead>Enseignant</TableHead>
+              <TableHead>Étudiants</TableHead>
+              <TableHead>Créée le</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
               </TableHead>
@@ -44,7 +44,7 @@ export default function AdminClassesPage() {
             {classes.map((c) => (
               <TableRow key={c.id}>
                 <TableCell className="font-medium">{c.name}</TableCell>
-                <TableCell>{c.teacher || 'Unassigned'}</TableCell>
+                <TableCell>{c.teacher || 'Non assigné'}</TableCell>
                 <TableCell>{c.studentCount}</TableCell>
                 <TableCell>{c.createdAt}</TableCell>
                 <TableCell>
@@ -52,15 +52,15 @@ export default function AdminClassesPage() {
                     <DropdownMenuTrigger asChild>
                       <Button aria-haspopup="true" size="icon" variant="ghost">
                         <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Toggle menu</span>
+                        <span className="sr-only">Ouvrir le menu</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem>Edit Details</DropdownMenuItem>
-                      <DropdownMenuItem>Assign Teacher</DropdownMenuItem>
-                      <DropdownMenuItem>Manage Students</DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
+                      <DropdownMenuItem>Modifier les détails</DropdownMenuItem>
+                      <DropdownMenuItem>Assigner un enseignant</DropdownMenuItem>
+                      <DropdownMenuItem>Gérer les étudiants</DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive">Supprimer</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>

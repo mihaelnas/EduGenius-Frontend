@@ -3,12 +3,12 @@ import { courses, subjects } from '@/lib/placeholder-data';
 import { BookOpen } from 'lucide-react';
 
 export default function StudentCoursesPage() {
-  const studentSubjects = subjects.slice(0, 3); // Mock: student is enrolled in first 3 subjects
+  const studentSubjects = subjects.slice(0, 3); // Mock: l'étudiant est inscrit aux 3 premières matières
 
   return (
     <>
-      <h1 className="text-3xl font-bold tracking-tight font-headline">My Courses</h1>
-      <p className="text-muted-foreground">Access all your learning materials and course content here.</p>
+      <h1 className="text-3xl font-bold tracking-tight font-headline">Mes Cours</h1>
+      <p className="text-muted-foreground">Accédez ici à tous vos supports de cours et contenus.</p>
       <div className="mt-6">
         <Accordion type="single" collapsible className="w-full">
             {studentSubjects.map(subject => (

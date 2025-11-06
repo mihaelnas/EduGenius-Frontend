@@ -54,15 +54,15 @@ export function DashboardSidebar() {
         </div>
          {/* This role switcher is for demonstration purposes only */}
         <div className="p-2 group-data-[collapsible=icon]:hidden">
-           <label className="text-xs text-sidebar-foreground/70 mb-1 block">Demo Role Switcher</label>
+           <label className="text-xs text-sidebar-foreground/70 mb-1 block">Démo : Changer de rôle</label>
            <Select onValueChange={handleRoleChange} defaultValue={role}>
             <SelectTrigger className="bg-sidebar-accent border-sidebar-border h-9">
-              <SelectValue placeholder="Switch Role" />
+              <SelectValue placeholder="Changer de rôle" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="teacher">Teacher</SelectItem>
-              <SelectItem value="student">Student</SelectItem>
+              <SelectItem value="teacher">Enseignant</SelectItem>
+              <SelectItem value="student">Étudiant</SelectItem>
             </SelectContent>
           </Select>
         </div>

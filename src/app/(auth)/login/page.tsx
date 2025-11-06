@@ -27,8 +27,8 @@ import {
 import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
-  email: z.string().email({ message: 'Please enter a valid email.' }),
-  password: z.string().min(1, { message: 'Password is required.' }),
+  login: z.string().min(1, { message: 'Ce champ est requis.' }),
+  password: z.string().min(1, { message: 'Le mot de passe est requis.' }),
 });
 
 export default function LoginPage() {
@@ -38,7 +38,7 @@ export default function LoginPage() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: '',
+      login: '',
       password: '',
     },
   });
@@ -47,8 +47,8 @@ export default function LoginPage() {
     // Mock login logic
     console.log(values);
     toast({
-      title: 'Login Successful',
-      description: 'Redirecting to your dashboard...',
+      title: 'Connexion réussie',
+      description: 'Redirection vers votre tableau de bord...',
     });
     // Redirect to dashboard after a short delay
     setTimeout(() => {
@@ -59,9 +59,9 @@ export default function LoginPage() {
   return (
     <Card className="w-full max-w-sm shadow-2xl">
       <CardHeader>
-        <CardTitle className="text-2xl font-headline">Welcome Back!</CardTitle>
+        <CardTitle className="text-2xl font-headline">Ravi de vous revoir !</CardTitle>
         <CardDescription>
-          Enter your credentials to access your account.
+          Entrez vos identifiants pour accéder à votre compte.
         </CardDescription>
       </CardHeader>
       <Form {...form}>
@@ -69,12 +69,12 @@ export default function LoginPage() {
           <CardContent className="grid gap-4">
             <FormField
               control={form.control}
-              name="email"
+              name="login"
               render={({ field }) => (
                 <FormItem className="grid gap-2">
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>Email ou Nom d'utilisateur</FormLabel>
                   <FormControl>
-                    <Input placeholder="m@example.com" {...field} />
+                    <Input placeholder="nom@exemple.com ou votre pseudo" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -85,7 +85,7 @@ export default function LoginPage() {
               name="password"
               render={({ field }) => (
                 <FormItem className="grid gap-2">
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel>Mot de passe</FormLabel>
                   <FormControl>
                     <Input type="password" {...field} />
                   </FormControl>
@@ -96,12 +96,12 @@ export default function LoginPage() {
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
             <Button className="w-full" type="submit">
-              Sign In
+              Se connecter
             </Button>
             <div className="text-center text-sm text-muted-foreground">
-              Don't have an account?{' '}
+              Vous n'avez pas de compte ?{' '}
               <Link href="/register" className="underline text-primary">
-                Sign up
+                Inscrivez-vous
               </Link>
             </div>
           </CardFooter>

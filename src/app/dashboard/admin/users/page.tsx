@@ -13,17 +13,17 @@ export default function AdminUsersPage() {
       <CardHeader>
         <div className="flex items-center justify-between gap-4">
             <div>
-                <CardTitle className="font-headline">User Management</CardTitle>
-                <CardDescription>Create, view, and manage all users on the platform.</CardDescription>
+                <CardTitle className="font-headline">Gestion des Utilisateurs</CardTitle>
+                <CardDescription>Créez, affichez et gérez tous les utilisateurs de la plateforme.</CardDescription>
             </div>
             <div className="flex items-center gap-2">
                 <div className="relative">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Search users..." className="pl-8 sm:w-[300px]" />
+                    <Input placeholder="Rechercher des utilisateurs..." className="pl-8 sm:w-[300px]" />
                 </div>
                 <Button>
                     <PlusCircle className="mr-2 h-4 w-4" />
-                    Add User
+                    Ajouter un utilisateur
                 </Button>
             </div>
         </div>
@@ -32,11 +32,11 @@ export default function AdminUsersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
+              <TableHead>Nom</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Created At</TableHead>
+              <TableHead>Rôle</TableHead>
+              <TableHead>Statut</TableHead>
+              <TableHead>Créé le</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
               </TableHead>
@@ -50,7 +50,7 @@ export default function AdminUsersPage() {
                 <TableCell className="capitalize">{user.role}</TableCell>
                 <TableCell>
                   <Badge variant={user.status === 'active' ? 'default' : 'secondary'} className={user.status === 'active' ? 'bg-green-600' : 'bg-gray-400'}>
-                    {user.status}
+                    {user.status === 'active' ? 'Actif' : 'Inactif'}
                   </Badge>
                 </TableCell>
                 <TableCell>{user.createdAt}</TableCell>
@@ -59,13 +59,13 @@ export default function AdminUsersPage() {
                     <DropdownMenuTrigger asChild>
                       <Button aria-haspopup="true" size="icon" variant="ghost">
                         <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Toggle menu</span>
+                        <span className="sr-only">Ouvrir le menu</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem>Edit</DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
+                      <DropdownMenuItem>Modifier</DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive">Supprimer</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>

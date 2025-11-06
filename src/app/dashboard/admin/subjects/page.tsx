@@ -12,17 +12,17 @@ export default function AdminSubjectsPage() {
       <CardHeader>
         <div className="flex items-center justify-between gap-4">
             <div>
-                <CardTitle className="font-headline">Subject Management</CardTitle>
-                <CardDescription>Create subjects and assign them to teachers.</CardDescription>
+                <CardTitle className="font-headline">Gestion des Matières</CardTitle>
+                <CardDescription>Créez des matières et assignez-les à des enseignants.</CardDescription>
             </div>
             <div className="flex items-center gap-2">
                  <div className="relative">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Search subjects..." className="pl-8 sm:w-[300px]" />
+                    <Input placeholder="Rechercher des matières..." className="pl-8 sm:w-[300px]" />
                 </div>
                 <Button>
                     <PlusCircle className="mr-2 h-4 w-4" />
-                    Add Subject
+                    Ajouter une matière
                 </Button>
             </div>
         </div>
@@ -31,10 +31,10 @@ export default function AdminSubjectsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Subject Name</TableHead>
-              <TableHead>Assigned Teacher</TableHead>
+              <TableHead>Nom de la matière</TableHead>
+              <TableHead>Enseignant assigné</TableHead>
               <TableHead>Classes</TableHead>
-              <TableHead>Created At</TableHead>
+              <TableHead>Créée le</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
               </TableHead>
@@ -44,7 +44,7 @@ export default function AdminSubjectsPage() {
             {subjects.map((subject) => (
               <TableRow key={subject.id}>
                 <TableCell className="font-medium">{subject.name}</TableCell>
-                <TableCell>{subject.teacher || 'Unassigned'}</TableCell>
+                <TableCell>{subject.teacher || 'Non assigné'}</TableCell>
                 <TableCell>{subject.classCount}</TableCell>
                 <TableCell>{subject.createdAt}</TableCell>
                 <TableCell>
@@ -52,14 +52,14 @@ export default function AdminSubjectsPage() {
                     <DropdownMenuTrigger asChild>
                       <Button aria-haspopup="true" size="icon" variant="ghost">
                         <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Toggle menu</span>
+                        <span className="sr-only">Ouvrir le menu</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                       <DropdownMenuItem>Edit Details</DropdownMenuItem>
-                      <DropdownMenuItem>Assign Teacher</DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
+                       <DropdownMenuItem>Modifier les détails</DropdownMenuItem>
+                      <DropdownMenuItem>Assigner un enseignant</DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive">Supprimer</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>

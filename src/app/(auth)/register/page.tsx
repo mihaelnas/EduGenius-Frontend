@@ -16,13 +16,6 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   Form,
   FormControl,
   FormField,
@@ -33,12 +26,11 @@ import {
 import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
-  fullName: z.string().min(1, { message: 'Full name is required.' }),
-  email: z.string().email({ message: 'Please enter a valid email.' }),
-  password: z.string().min(8, { message: 'Password must be at least 8 characters.' }),
-  role: z.enum(['student', 'teacher'], {
-    required_error: 'You need to select a role.',
-  }),
+  prenom: z.string().min(1, { message: 'Le prénom est requis.' }),
+  nom: z.string().min(1, { message: 'Le nom est requis.' }),
+  username: z.string().min(1, { message: 'Le nom d\'utilisateur est requis.' }),
+  email: z.string().email({ message: 'Veuillez entrer un email valide.' }),
+  password: z.string().min(8, { message: 'Le mot de passe doit contenir au moins 8 caractères.' }),
 });
 
 export default function RegisterPage() {
@@ -48,7 +40,9 @@ export default function RegisterPage() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      fullName: '',
+      prenom: '',
+      nom: '',
+      username: '',
       email: '',
       password: '',
     },
@@ -56,10 +50,11 @@ export default function RegisterPage() {
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     // Mock registration logic
-    console.log(values);
+    const userData = { ...values, role: 'etudiant' };
+    console.log(userData);
     toast({
-      title: 'Registration Successful',
-      description: 'You can now log in with your new account.',
+      title: 'Inscription réussie',
+      description: 'Vous pouvez maintenant vous connecter avec votre nouveau compte.',
     });
     // Redirect to login after a short delay
     setTimeout(() => {
@@ -70,22 +65,50 @@ export default function RegisterPage() {
   return (
     <Card className="w-full max-w-sm shadow-2xl">
       <CardHeader>
-        <CardTitle className="text-2xl font-headline">Create an Account</CardTitle>
+        <CardTitle className="text-2xl font-headline">Créer un compte</CardTitle>
         <CardDescription>
-          Join EduGenius today. It's free!
+          Rejoignez EduGenius aujourd'hui. C'est gratuit !
         </CardDescription>
       </CardHeader>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
+        <form onSubmit={form.handleSubmit(onSubmit)} noValidate>
           <CardContent className="grid gap-4">
-             <FormField
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="prenom"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Prénom</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Jean" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="nom"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nom</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Dupont" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <FormField
               control={form.control}
-              name="fullName"
+              name="username"
               render={({ field }) => (
                 <FormItem className="grid gap-2">
-                  <FormLabel>Full Name</FormLabel>
+                  <FormLabel>Nom d'utilisateur</FormLabel>
                   <FormControl>
-                    <Input placeholder="John Doe" {...field} />
+                    <Input placeholder="jeandupont" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -98,7 +121,7 @@ export default function RegisterPage() {
                 <FormItem className="grid gap-2">
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="m@example.com" {...field} />
+                    <Input placeholder="nom@exemple.com" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -109,7 +132,7 @@ export default function RegisterPage() {
               name="password"
               render={({ field }) => (
                 <FormItem className="grid gap-2">
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel>Mot de passe</FormLabel>
                   <FormControl>
                     <Input type="password" {...field} />
                   </FormControl>
@@ -117,36 +140,15 @@ export default function RegisterPage() {
                 </FormItem>
               )}
             />
-             <FormField
-              control={form.control}
-              name="role"
-              render={({ field }) => (
-                <FormItem className="grid gap-2">
-                  <FormLabel>I am a...</FormLabel>
-                   <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select your role" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="student">Student</SelectItem>
-                      <SelectItem value="teacher">Teacher</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
             <Button className="w-full" type="submit">
-              Sign Up
+              S'inscrire
             </Button>
             <div className="text-center text-sm text-muted-foreground">
-              Already have an account?{' '}
+              Vous avez déjà un compte ?{' '}
               <Link href="/login" className="underline text-primary">
-                Sign in
+                Connectez-vous
               </Link>
             </div>
           </CardFooter>
