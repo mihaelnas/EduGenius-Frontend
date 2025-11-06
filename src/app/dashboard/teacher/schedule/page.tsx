@@ -82,7 +82,6 @@ export default function TeacherSchedulePage() {
                 className="rounded-md"
                 locale={fr}
                 disabled={(d) => d < new Date('1900-01-01')}
-                initialFocus
               />
             </CardContent>
           </Card>
