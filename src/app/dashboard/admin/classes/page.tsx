@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { classes } from '@/lib/placeholder-data';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, PlusCircle, Search } from 'lucide-react';
+import { MoreHorizontal, Search } from 'lucide-react';
 import React from 'react';
+import { AddClassDialog } from '@/components/admin/add-class-dialog';
 
 export default function AdminClassesPage() {
   const [searchTerm, setSearchTerm] = React.useState('');
@@ -36,10 +37,7 @@ export default function AdminClassesPage() {
                       onChange={e => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <Button>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Ajouter une classe
-                </Button>
+                <AddClassDialog />
             </div>
         </div>
       </CardHeader>
@@ -92,5 +90,3 @@ export default function AdminClassesPage() {
     </Card>
   );
 }
-
-    

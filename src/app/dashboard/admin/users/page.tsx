@@ -8,9 +8,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { users, getDisplayName } from '@/lib/placeholder-data';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, PlusCircle, Search } from 'lucide-react';
+import { MoreHorizontal, Search } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import React from 'react';
+import { AddUserDialog } from '@/components/admin/add-user-dialog';
 
 export default function AdminUsersPage() {
   const [searchTerm, setSearchTerm] = React.useState('');
@@ -38,10 +39,7 @@ export default function AdminUsersPage() {
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <Button>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Ajouter un utilisateur
-                </Button>
+                <AddUserDialog />
             </div>
         </div>
       </CardHeader>
@@ -106,5 +104,3 @@ export default function AdminUsersPage() {
     </Card>
   );
 }
-
-    

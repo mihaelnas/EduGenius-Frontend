@@ -7,9 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { subjects } from '@/lib/placeholder-data';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, PlusCircle, Search } from 'lucide-react';
+import { MoreHorizontal, Search } from 'lucide-react';
 import Image from 'next/image';
 import React from 'react';
+import { AddSubjectDialog } from '@/components/admin/add-subject-dialog';
 
 export default function AdminSubjectsPage() {
   const [searchTerm, setSearchTerm] = React.useState('');
@@ -36,10 +37,7 @@ export default function AdminSubjectsPage() {
                       onChange={e => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <Button>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Ajouter une matière
-                </Button>
+                <AddSubjectDialog />
             </div>
         </div>
       </CardHeader>
@@ -98,5 +96,3 @@ export default function AdminSubjectsPage() {
     </Card>
   );
 }
-
-    
