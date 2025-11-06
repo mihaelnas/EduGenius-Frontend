@@ -11,6 +11,7 @@ import { format } from 'date-fns';
 import { schedule as initialSchedule, ScheduleEvent } from '@/lib/placeholder-data';
 import { AddEventDialog } from '@/components/teacher/add-event-dialog';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const statusVariant: { [key in ScheduleEvent['status']]: 'default' | 'secondary' | 'destructive' | 'outline' } = {
   'planifié': 'default',
@@ -75,14 +76,20 @@ export default function TeacherSchedulePage() {
         <div>
           <Card>
             <CardContent className="p-0">
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={setDate}
-                className="rounded-md"
-                locale={fr}
-                disabled={(d) => d < new Date('1900-01-01')}
-              />
+              {date ? (
+                <Calendar
+                  mode="single"
+                  selected={date}
+                  onSelect={setDate}
+                  className="rounded-md"
+                  locale={fr}
+                  disabled={(d) => d < new Date('1900-01-01')}
+                />
+              ) : (
+                <div className="p-3">
+                  <Skeleton className="h-[298px] w-full" />
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
