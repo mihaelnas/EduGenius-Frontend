@@ -6,20 +6,27 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { classes as initialClasses, Class, users, getDisplayName } from '@/lib/placeholder-data';
+import { classes as initialClasses, Class, users, getDisplayName, AppUser } from '@/lib/placeholder-data';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Search } from 'lucide-react';
 import { AddClassDialog } from '@/components/admin/add-class-dialog';
 import { EditClassDialog } from '@/components/admin/edit-class-dialog';
 import { DeleteConfirmationDialog } from '@/components/admin/delete-confirmation-dialog';
 import { Badge } from '@/components/ui/badge';
+import { AssignTeacherDialog } from '@/components/admin/assign-teacher-dialog';
+import { ManageStudentsDialog } from '@/components/admin/manage-students-dialog';
 
 export default function AdminClassesPage() {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [classes, setClasses] = React.useState<Class[]>(initialClasses);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+  const [isAssignTeacherDialogOpen, setIsAssignTeacherDialogOpen] = React.useState(false);
+  const [isManageStudentsDialogOpen, setIsManageStudentsDialogOpen] = React.useState(false);
   const [selectedClass, setSelectedClass] = React.useState<Class | null>(null);
+
+  const allTeachers = users.filter(u => u.role === 'teacher');
+  const allStudents = users.filter(u => u.role === 'student');
 
   const handleEdit = (c: Class) => {
     setSelectedClass(c);
@@ -31,6 +38,16 @@ export default function AdminClassesPage() {
     setIsDeleteDialogOpen(true);
   };
 
+  const handleAssignTeacher = (c: Class) => {
+    setSelectedClass(c);
+    setIsAssignTeacherDialogOpen(true);
+  };
+
+  const handleManageStudents = (c: Class) => {
+    setSelectedClass(c);
+    setIsManageStudentsDialogOpen(true);
+  };
+
   const confirmDelete = () => {
     if (selectedClass) {
       setClasses(classes.filter(c => c.id !== selectedClass.id));
@@ -39,7 +56,7 @@ export default function AdminClassesPage() {
     }
   };
   
-  const getTeacherById = (id: string) => users.find(u => u.id === id);
+  const getTeacherById = (id: string): AppUser | undefined => users.find(u => u.id === id);
 
   const filteredClasses = classes.filter(c =>
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -92,10 +109,11 @@ export default function AdminClassesPage() {
                   <TableCell>{c.filiere}</TableCell>
                   <TableCell>
                      <div className="flex flex-wrap gap-1">
-                      {c.teachers.length > 0 ? (
-                        c.teachers.map(teacherName => (
-                           <Badge key={teacherName} variant="secondary">{teacherName}</Badge>
-                        ))
+                      {c.teacherIds.length > 0 ? (
+                        c.teacherIds.map(teacherId => {
+                          const teacher = getTeacherById(teacherId);
+                          return teacher ? <Badge key={teacherId} variant="secondary">{getDisplayName(teacher)}</Badge> : null;
+                        })
                       ) : (
                         'Non assigné'
                       )}
@@ -114,8 +132,8 @@ export default function AdminClassesPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => handleEdit(c)}>Modifier les détails</DropdownMenuItem>
-                        <DropdownMenuItem>Assigner un enseignant</DropdownMenuItem>
-                        <DropdownMenuItem>Gérer les étudiants</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleAssignTeacher(c)}>Assigner un enseignant</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleManageStudents(c)}>Gérer les étudiants</DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(c)}>Supprimer</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -131,6 +149,28 @@ export default function AdminClassesPage() {
           isOpen={isEditDialogOpen}
           setIsOpen={setIsEditDialogOpen}
           classData={selectedClass}
+        />
+      )}
+       {selectedClass && (
+        <AssignTeacherDialog
+          isOpen={isAssignTeacherDialogOpen}
+          setIsOpen={setIsAssignTeacherDialogOpen}
+          classData={selectedClass}
+          allTeachers={allTeachers}
+          onAssign={(classId, teacherIds) => {
+            setClasses(classes.map(c => c.id === classId ? {...c, teacherIds} : c));
+          }}
+        />
+      )}
+      {selectedClass && (
+        <ManageStudentsDialog
+          isOpen={isManageStudentsDialogOpen}
+          setIsOpen={setIsManageStudentsDialogOpen}
+          classData={selectedClass}
+          allStudents={allStudents}
+          onUpdate={(classId, studentIds) => {
+             setClasses(classes.map(c => c.id === classId ? {...c, studentIds} : c));
+          }}
         />
       )}
       <DeleteConfirmationDialog

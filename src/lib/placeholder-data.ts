@@ -42,7 +42,7 @@ export type Class = {
   niveau: 'L1' | 'L2' | 'L3' | 'M1' | 'M2';
   filiere: 'IG' | 'GB' | 'ASR' | 'GID' | 'OCC';
   anneeScolaire: string; // e.g., "2023-2024"
-  teachers: string[];
+  teacherIds: string[];
   studentIds: string[];
   createdAt: string;
 };
@@ -53,7 +53,7 @@ export type Subject = {
   credit: number;
   semestre: 'S1' | 'S2';
   photo?: string;
-  teacher?: string;
+  teacherId?: string;
   classCount: number;
   createdAt: string;
 };
@@ -162,17 +162,17 @@ export const users: AppUser[] = [
 
 
 export const classes: Class[] = [
-  { id: 'cls_1', name: 'Licence 3 - IG', niveau: 'L3', filiere: 'IG', anneeScolaire: '2023-2024', teachers: ['Alice Johnson'], studentIds: ['usr_3', 'usr_6'], createdAt: '2023-09-01' },
-  { id: 'cls_2', name: 'Master 1 - ASR', niveau: 'M1', filiere: 'ASR', anneeScolaire: '2023-2024', teachers: ['Diana Prince'], studentIds: ['usr_4'], createdAt: '2023-09-01' },
-  { id: 'cls_3', name: 'Licence 3 - GID', niveau: 'L3', filiere: 'GID', anneeScolaire: '2023-2024', teachers: ['Alice Johnson'], studentIds: [], createdAt: '2023-09-02' },
-  { id: 'cls_4', name: 'Licence 2 - GB', niveau: 'L2', filiere: 'GB', anneeScolaire: '2023-2024', teachers: [], studentIds: [], createdAt: '2023-09-03' },
+  { id: 'cls_1', name: 'Licence 3 - IG', niveau: 'L3', filiere: 'IG', anneeScolaire: '2023-2024', teacherIds: ['usr_2'], studentIds: ['usr_3', 'usr_6'], createdAt: '2023-09-01' },
+  { id: 'cls_2', name: 'Master 1 - ASR', niveau: 'M1', filiere: 'ASR', anneeScolaire: '2023-2024', teacherIds: ['usr_5'], studentIds: ['usr_4'], createdAt: '2023-09-01' },
+  { id: 'cls_3', name: 'Licence 3 - GID', niveau: 'L3', filiere: 'GID', anneeScolaire: '2023-2024', teacherIds: ['usr_2'], studentIds: [], createdAt: '2023-09-02' },
+  { id: 'cls_4', name: 'Licence 2 - GB', niveau: 'L2', filiere: 'GB', anneeScolaire: '2023-2024', teacherIds: [], studentIds: [], createdAt: '2023-09-03' },
 ];
 
 export const subjects: Subject[] = [
-    { id: 'sub_1', name: 'Mathématiques Avancées', credit: 5, semestre: 'S1', teacher: 'Alice Johnson', classCount: 3, createdAt: '2023-09-01' },
-    { id: 'sub_2', name: 'Physique Quantique', credit: 5, semestre: 'S1', teacher: 'Alice Johnson', classCount: 2, createdAt: '2023-09-01' },
-    { id: 'sub_3', name: 'Littérature Comparée', credit: 4, semestre: 'S2', teacher: 'Diana Prince', classCount: 4, createdAt: '2023-09-02' },
-    { id: 'sub_4', name: 'Histoire Moderne', credit: 3, semestre: 'S2', teacher: undefined, classCount: 1, createdAt: '2023-09-02' },
+    { id: 'sub_1', name: 'Mathématiques Avancées', credit: 5, semestre: 'S1', teacherId: 'usr_2', classCount: 3, createdAt: '2023-09-01' },
+    { id: 'sub_2', name: 'Physique Quantique', credit: 5, semestre: 'S1', teacherId: 'usr_2', classCount: 2, createdAt: '2023-09-01' },
+    { id: 'sub_3', name: 'Littérature Comparée', credit: 4, semestre: 'S2', teacherId: 'usr_5', classCount: 4, createdAt: '2023-09-02' },
+    { id: 'sub_4', name: 'Histoire Moderne', credit: 3, semestre: 'S2', teacherId: undefined, classCount: 1, createdAt: '2023-09-02' },
 ];
 
 export const students = [

@@ -6,20 +6,24 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { subjects as initialSubjects, Subject } from '@/lib/placeholder-data';
+import { subjects as initialSubjects, Subject, users, getDisplayName, AppUser } from '@/lib/placeholder-data';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Search } from 'lucide-react';
 import Image from 'next/image';
 import { AddSubjectDialog } from '@/components/admin/add-subject-dialog';
 import { EditSubjectDialog } from '@/components/admin/edit-subject-dialog';
 import { DeleteConfirmationDialog } from '@/components/admin/delete-confirmation-dialog';
+import { AssignSubjectTeacherDialog } from '@/components/admin/assign-subject-teacher-dialog';
 
 export default function AdminSubjectsPage() {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [subjects, setSubjects] = React.useState<Subject[]>(initialSubjects);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+  const [isAssignTeacherDialogOpen, setIsAssignTeacherDialogOpen] = React.useState(false);
   const [selectedSubject, setSelectedSubject] = React.useState<Subject | null>(null);
+
+  const allTeachers = users.filter(u => u.role === 'teacher');
 
   const handleEdit = (subject: Subject) => {
     setSelectedSubject(subject);
@@ -30,6 +34,11 @@ export default function AdminSubjectsPage() {
     setSelectedSubject(subject);
     setIsDeleteDialogOpen(true);
   };
+  
+  const handleAssignTeacher = (subject: Subject) => {
+    setSelectedSubject(subject);
+    setIsAssignTeacherDialogOpen(true);
+  };
 
   const confirmDelete = () => {
     if (selectedSubject) {
@@ -38,6 +47,8 @@ export default function AdminSubjectsPage() {
       setSelectedSubject(null);
     }
   };
+
+  const getTeacherById = (id: string): AppUser | undefined => users.find(u => u.id === id);
 
   const filteredSubjects = subjects.filter(subject =>
     subject.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -81,7 +92,9 @@ export default function AdminSubjectsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredSubjects.map((subject) => (
+              {filteredSubjects.map((subject) => {
+                const teacher = subject.teacherId ? getTeacherById(subject.teacherId) : undefined;
+                return (
                 <TableRow key={subject.id}>
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-3">
@@ -95,7 +108,7 @@ export default function AdminSubjectsPage() {
                   </TableCell>
                   <TableCell>{subject.credit}</TableCell>
                   <TableCell>{subject.semestre}</TableCell>
-                  <TableCell>{subject.teacher || 'Non assigné'}</TableCell>
+                  <TableCell>{teacher ? getDisplayName(teacher) : 'Non assigné'}</TableCell>
                   <TableCell>{subject.classCount}</TableCell>
                   <TableCell>
                     <DropdownMenu>
@@ -108,13 +121,13 @@ export default function AdminSubjectsPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                          <DropdownMenuItem onClick={() => handleEdit(subject)}>Modifier les détails</DropdownMenuItem>
-                        <DropdownMenuItem>Assigner un enseignant</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleAssignTeacher(subject)}>Assigner un enseignant</DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(subject)}>Supprimer</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
-              ))}
+              )})}
             </TableBody>
           </Table>
         </CardContent>
@@ -124,6 +137,17 @@ export default function AdminSubjectsPage() {
           isOpen={isEditDialogOpen}
           setIsOpen={setIsEditDialogOpen}
           subject={selectedSubject}
+        />
+      )}
+       {selectedSubject && (
+        <AssignSubjectTeacherDialog
+          isOpen={isAssignTeacherDialogOpen}
+          setIsOpen={setIsAssignTeacherDialogOpen}
+          subject={selectedSubject}
+          allTeachers={allTeachers}
+          onAssign={(subjectId, teacherId) => {
+            setSubjects(subjects.map(s => s.id === subjectId ? {...s, teacherId} : s));
+          }}
         />
       )}
       <DeleteConfirmationDialog
