@@ -13,19 +13,16 @@ type StudentDashboardProps = {
     studentClass: Class | null | undefined;
     subjects: Subject[];
     recentCourses: Course[];
+    getSubjectName: (subjectId: string) => string;
 }
 
-export function StudentDashboard({ userName, studentClass, subjects, recentCourses }: StudentDashboardProps) {
+export function StudentDashboard({ userName, studentClass, subjects, recentCourses, getSubjectName }: StudentDashboardProps) {
 
     const stats = [
         { title: "Matières Inscrites", value: subjects.length, icon: <BookOpen className="h-6 w-6 text-primary" />, href: "/dashboard/student/courses" },
         { title: "Camarades de classe", value: studentClass ? studentClass.studentIds.length - 1 : 0, icon: <Users className="h-6 w-6 text-primary" />, href: "/dashboard/student/classmates" },
     ];
     
-    const getSubjectName = (subjectId: string) => {
-        return subjects.find(s => s.id === subjectId)?.name || 'Matière inconnue';
-    }
-
     return (
         <>
             <h1 className="text-3xl font-bold tracking-tight font-headline">

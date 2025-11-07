@@ -120,5 +120,3 @@ export function EditCourseDialog({ isOpen, setIsOpen, course, onCourseUpdated }:
     </Dialog>
   );
 }
-
-    

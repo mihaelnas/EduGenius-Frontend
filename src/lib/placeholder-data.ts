@@ -69,6 +69,7 @@ export type Course = {
   title: string;
   content: string;
   subjectId: string;
+  subjectName: string; // Add subjectName to the course
   teacherId: string;
   resources: Resource[];
   createdAt: string;

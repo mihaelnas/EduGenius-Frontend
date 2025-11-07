@@ -6,7 +6,6 @@ import { useParams, notFound } from 'next/navigation';
 import Link from 'next/link';
 import {
   Course,
-  Subject,
   Resource,
 } from '@/lib/placeholder-data';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -31,19 +30,13 @@ const ResourceIcon = ({ type }: { type: Resource['type'] }) => {
 
 export default function CourseDetailPage() {
   const params = useParams();
-  const subjectId = params.subjectId as string;
   const courseId = params.courseId as string;
   const firestore = useFirestore();
 
-  const subjectDocRef = useMemoFirebase(() => subjectId ? doc(firestore, 'subjects', subjectId) : null, [firestore, subjectId]);
   const courseDocRef = useMemoFirebase(() => courseId ? doc(firestore, 'courses', courseId) : null, [firestore, courseId]);
-
-  const { data: subject, isLoading: isLoadingSubject } = useDoc<Subject>(subjectDocRef);
   const { data: course, isLoading: isLoadingCourse } = useDoc<Course>(courseDocRef);
   
-  const isLoading = isLoadingSubject || isLoadingCourse;
-
-  if (isLoading) {
+  if (isLoadingCourse) {
     return (
         <div>
             <Skeleton className="h-6 w-1/2 mb-6" />
@@ -68,9 +61,7 @@ export default function CourseDetailPage() {
     );
   }
 
-  // Si le cours ou la matière n'existe pas, on affiche une 404.
-  // La vérification de la correspondance entre les deux est supprimée car elle était la source du bug.
-  if (!course || !subject) {
+  if (!course) {
     notFound();
     return null;
   }
@@ -101,7 +92,7 @@ export default function CourseDetailPage() {
 
       <Card>
         <CardHeader>
-          <p className="text-sm font-semibold text-primary">{subject.name}</p>
+          <p className="text-sm font-semibold text-primary">{course.subjectName}</p>
           <CardTitle className="text-3xl font-headline">{course.title}</CardTitle>
           {course.createdAt && (
             <CardDescription>Publié le {new Date(course.createdAt).toLocaleDateString('fr-FR')}</CardDescription>

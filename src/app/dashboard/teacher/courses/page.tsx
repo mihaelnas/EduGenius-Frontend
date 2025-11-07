@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -73,16 +74,17 @@ function SubjectCourses({ subject }: { subject: Subject }) {
     }
   };
 
-  const handleAddCourse = async (newCourseData: Omit<Course, 'id' | 'subjectId' | 'createdAt' | 'teacherId'>) => {
+  const handleAddCourse = async (newCourseData: Omit<Course, 'id' | 'subjectId' | 'subjectName' | 'createdAt' | 'teacherId'>) => {
     if (!user) {
       toast({ variant: 'destructive', title: 'Erreur', description: 'Utilisateur non authentifié.' });
       return;
     }
 
     const coursesCollectionRef = collection(firestore, 'courses');
-    const coursePayload = {
+    const coursePayload: Omit<Course, 'id'> = {
       ...newCourseData,
       subjectId: subject.id,
+      subjectName: subject.name,
       teacherId: user.uid,
       createdAt: new Date().toISOString(),
     };

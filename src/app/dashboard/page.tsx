@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -144,6 +145,10 @@ export default function DashboardPage() {
     fetchStudentData();
   }, [user, userRole, firestore, isUserLoading]);
 
+    const getSubjectName = (subjectId: string) => {
+        return studentSubjects.find(s => s.id === subjectId)?.name || 'Matière inconnue';
+    }
+
 
   const renderDashboard = () => {
     if (isUserLoading || isRoleLoading) {
@@ -226,6 +231,7 @@ export default function DashboardPage() {
             studentClass={studentClass}
             subjects={studentSubjects}
             recentCourses={recentCourses}
+            getSubjectName={getSubjectName}
         />;
       default:
         return <div>Rôle utilisateur non reconnu.</div>;
