@@ -66,41 +66,28 @@ service cloud.firestore {
     }
 
     /**
-     * @description Checks if the user has admin rights by checking if the document exists
-     *              in `/roles_admin/{userId}`.
+     * @description Checks if the user has admin rights.
      * @returns {boolean} True if the user is an admin, false otherwise.
      */
     function isAdmin() {
-        return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)) || request.auth.token.email == 'nasmihael@gmail.com';
     }
 
     /**
      * @description Rules for user profiles.
      * @path /users/{userId}
-     * @allow (create) User with ID 'user123' creates their own profile.
-     *     request.auth.uid == 'user123' and request.resource.data.id == 'user122'
-     * @allow (get, update, delete) User with ID 'user123' reads, updates, or deletes their own profile.
-     *     request.auth.uid == 'user123'
-     * @deny (create) User with ID 'user123' tries to create a profile with a different ID 'user456'.
-     *     request.auth.uid == 'user123' and request.resource.data.id == 'user456'
-     * @principle Enforces document ownership and prevents unauthorized access to user profiles.
      */
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id || isAdmin();
+      allow delete: if isExistingOwner(userId) || isAdmin();
     }
 
     /**
      * @description Rules for class information.
      * @path /classes/{classId}
-     * @allow (get, list) Admin read access to class information.
-     * @allow (create) Admin creates a new class.
-     * @allow (update, delete) Admin updates or deletes a class.
-     * @deny (create, update, delete) Non-admin users cannot create, update, or delete classes.
-     * @principle Allows public read access but restricts write access to admins.
      */
     match /classes/{classId} {
       allow get, list: if isAdmin();
@@ -112,14 +99,6 @@ service cloud.firestore {
     /**
      * @description Rules for subject information.
      * @path /subjects/{subjectId}
-     * @allow (get, list) Admin read access to subject information.
-     * @allow (create) Teacher with ID 'teacher123' creates a new subject.
-     *     request.auth.uid == 'teacher123' and request.resource.data.teacherId == 'teacher123'
-     * @allow (update, delete) Teacher with ID 'teacher123' updates or deletes their own subject.
-     *     request.auth.uid == 'teacher123' and resource.data.teacherId == 'teacher123'
-     * @deny (create) Teacher with ID 'teacher123' tries to create a subject for another teacher 'teacher456'.
-     *     request.auth.uid == 'teacher123' and request.resource.data.teacherId == 'teacher456'
-     * @principle Enforces teacher ownership for subject creation and modification.
      */
     match /subjects/{subjectId} {
       allow get, list: if isAdmin();
@@ -131,33 +110,17 @@ service cloud.firestore {
     /**
      * @description Rules for courses within a subject.
      * @path /subjects/{subjectId}/courses/{courseId}
-     * @allow (get, list) Public read access to course information.
-     * @allow (create) Teacher with ID 'teacher123' creates a new course under their subject.
-     *     request.auth.uid == 'teacher123'
-     *     and get(/databases/$(database)/documents/subjects/$(subjectId)).data.teacherId == 'teacher123'
-     * @allow (update, delete) Teacher with ID 'teacher123' updates or deletes a course under their subject.
-     *     request.auth.uid == 'teacher123'
-     *     and get(/databases/$(database)/documents/subjects/$(subjectId)).data.teacherId == 'teacher123'
-     * @deny (create) Teacher with ID 'teacher123' tries to create a course under a subject owned by another teacher.
-     *     request.auth.uid == 'teacher123'
-     *     and get(/databases/$(database)/documents/subjects/$(subjectId)).data.teacherId == 'teacher456'
-     * @principle Enforces teacher ownership for course creation and modification, based on the parent subject.
      */
     match /subjects/{subjectId}/courses/{courseId} {
       allow get, list: if true;
-      allow create: if isSignedIn() && get(/databases/$(database)/documents/subjects/$(subjectId)).data.teacherId == request.auth.uid;
-      allow update: if isSignedIn() && resource != null && get(/databases/$(database)/documents/subjects/$(subjectId)).data.teacherId == request.auth.uid;
-      allow delete: if isSignedIn() && resource != null && get(/databases/$(database)/documents/subjects/$(subjectId)).data.teacherId == request.auth.uid;
+      allow create: if isSignedIn() && get(/databases/$(database)/documents/subjects/$(subjectId)).data.teacherId == request.auth.uid || isAdmin();
+      allow update: if isSignedIn() && resource != null && get(/databases/$(database)/documents/subjects/$(subjectId)).data.teacherId == request.auth.uid || isAdmin();
+      allow delete: if isSignedIn() && resource != null && get(/databases/$(database)/documents/subjects/$(subjectId)).data.teacherId == request.auth.uid || isAdmin();
     }
 
      /**
       * @description Rules for the class-student relationship.
       * @path /class_students/{classStudentId}
-      * @allow get, list: if isAdmin();
-      * @allow create: if isAdmin();
-      * @allow update: if isAdmin() && resource != null;
-      * @allow delete: if isAdmin() && resource != null;
-      * @principle Only admin can manage relationship between class and student
       */
      match /class_students/{classStudentId} {
       allow get, list: if isAdmin();
@@ -169,11 +132,6 @@ service cloud.firestore {
     /**
      * @description Rules for the class-teacher relationship.
      * @path /class_teachers/{classTeacherId}
-     * @allow get, list: if isAdmin();
-     * @allow create: if isAdmin();
-     * @allow update: if isAdmin() && resource != null;
-     * @allow delete: if isAdmin() && resource != null;
-     * @principle Only admin can manage relationship between class and teacher
      */
     match /class_teachers/{classTeacherId} {
       allow get, list: if isAdmin();
@@ -185,18 +143,15 @@ service cloud.firestore {
     /**
      * @description Rules for admin roles.
      * @path /roles_admin/{userId}
-     * @allow get: if isAdmin();
-     * @allow list: if false;
-     * @allow create: if (request.auth.token.email == 'nasmihael@gmail.com' && request.auth.uid == userId) || isAdmin();
-     * @allow update: if false;
-     * @allow delete: if isAdmin();
      */
     match /roles_admin/{userId} {
        allow get: if isAdmin();
        allow list: if false;
-       allow create: if (request.auth.token.email == 'nasmihael@gmail.com' && request.auth.uid == userId) || isAdmin();
+       allow create: if isAdmin() || (isSignedIn() && request.auth.token.email == 'nasmihael@gmail.com');
        allow update: if false;
        allow delete: if isAdmin();
     }
   }
 }
+
+    
