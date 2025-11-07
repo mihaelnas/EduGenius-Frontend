@@ -35,8 +35,8 @@ import { AppUser } from '@/lib/placeholder-data';
 
 const baseSchema = z.object({
   role: z.enum(['student', 'teacher', 'admin']),
-  prenom: z.string().min(1, { message: 'Le prénom est requis.' }),
-  nom: z.string().min(1, { message: 'Le nom est requis.' }),
+  firstName: z.string().min(1, { message: 'Le prénom est requis.' }),
+  lastName: z.string().min(1, { message: 'Le nom est requis.' }),
   username: z.string().min(2, { message: "Le nom d'utilisateur est requis." }).startsWith('@', { message: 'Doit commencer par @.' }),
   email: z.string().email({ message: 'Email invalide.' }),
   photo: z.string().url({ message: 'URL invalide.' }).optional().or(z.literal('')),
@@ -113,14 +113,14 @@ export function EditUserDialog({ isOpen, setIsOpen, user, onUserUpdated }: EditU
   const handlePrenomBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     const value = e.target.value;
     if (value) {
-      form.setValue('prenom', value.charAt(0).toUpperCase() + value.slice(1).toLowerCase(), { shouldValidate: true });
+      form.setValue('firstName', value.charAt(0).toUpperCase() + value.slice(1).toLowerCase(), { shouldValidate: true });
     }
   };
 
   const handleNomBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     const value = e.target.value;
     if (value) {
-      form.setValue('nom', value.toUpperCase(), { shouldValidate: true });
+      form.setValue('lastName', value.toUpperCase(), { shouldValidate: true });
     }
   };
 
@@ -161,8 +161,8 @@ export function EditUserDialog({ isOpen, setIsOpen, user, onUserUpdated }: EditU
                         />
             
                         <div className="grid grid-cols-2 gap-4">
-                            <FormField control={form.control} name="prenom" render={({ field }) => ( <FormItem><FormLabel>Prénom</FormLabel><FormControl><Input placeholder="Jean" {...field} onBlur={handlePrenomBlur} /></FormControl><FormMessage /></FormItem> )} />
-                            <FormField control={form.control} name="nom" render={({ field }) => ( <FormItem><FormLabel>Nom</FormLabel><FormControl><Input placeholder="DUPONT" {...field} onBlur={handleNomBlur} /></FormControl><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="firstName" render={({ field }) => ( <FormItem><FormLabel>Prénom</FormLabel><FormControl><Input placeholder="Jean" {...field} onBlur={handlePrenomBlur} /></FormControl><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="lastName" render={({ field }) => ( <FormItem><FormLabel>Nom</FormLabel><FormControl><Input placeholder="DUPONT" {...field} onBlur={handleNomBlur} /></FormControl><FormMessage /></FormItem> )} />
                         </div>
 
                         <FormField control={form.control} name="username" render={({ field }) => ( <FormItem><FormLabel>Nom d'utilisateur</FormLabel><FormControl><Input placeholder="@jeandupont" {...field} /></FormControl><FormMessage /></FormItem> )} />

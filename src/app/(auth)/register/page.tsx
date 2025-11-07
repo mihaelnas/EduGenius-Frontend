@@ -30,7 +30,7 @@ import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 
 const formSchema = z.object({
-  prenom: z
+  firstName: z
     .string()
     .min(1, { message: 'Le prénom est requis.' })
     .refine(
@@ -39,7 +39,7 @@ const formSchema = z.object({
         message: 'Le prénom doit commencer par une majuscule.',
       }
     ),
-  nom: z
+  lastName: z
     .string()
     .min(1, { message: 'Le nom est requis.' })
     .refine((val) => val.length === 0 || val === val.toUpperCase(), {
@@ -66,8 +66,8 @@ export default function RegisterPage() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      prenom: '',
-      nom: '',
+      firstName: '',
+      lastName: '',
       username: '@',
       email: '',
       password: '',
@@ -82,9 +82,10 @@ export default function RegisterPage() {
 
       const userProfile = {
         id: user.uid,
-        firstName: values.prenom,
-        lastName: values.nom,
+        firstName: values.firstName,
+        lastName: values.lastName,
         email: values.email,
+        username: values.username,
         role: 'student',
         status: 'active',
         createdAt: new Date().toISOString(),
@@ -123,7 +124,7 @@ export default function RegisterPage() {
     if (value) {
       const formattedValue =
         value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
-      form.setValue('prenom', formattedValue, { shouldValidate: true });
+      form.setValue('firstName', formattedValue, { shouldValidate: true });
     }
   };
 
@@ -131,7 +132,7 @@ export default function RegisterPage() {
     const value = e.target.value;
     if (value) {
       const formattedValue = value.toUpperCase();
-      form.setValue('nom', formattedValue, { shouldValidate: true });
+      form.setValue('lastName', formattedValue, { shouldValidate: true });
     }
   };
 
@@ -149,7 +150,7 @@ export default function RegisterPage() {
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="prenom"
+                name="firstName"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Prénom</FormLabel>
@@ -166,7 +167,7 @@ export default function RegisterPage() {
               />
               <FormField
                 control={form.control}
-                name="nom"
+                name="lastName"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Nom</FormLabel>

@@ -81,7 +81,7 @@ export default function ProfilePage() {
         <Avatar className="h-24 w-24 border-4 border-primary">
           <AvatarImage src={user.photo} alt={getDisplayName(user)} />
           <AvatarFallback className="text-3xl">
-            {user.prenom.charAt(0)}{user.nom.charAt(0)}
+            {(user.firstName || '').charAt(0)}{(user.lastName || '').charAt(0)}
           </AvatarFallback>
         </Avatar>
         <div>

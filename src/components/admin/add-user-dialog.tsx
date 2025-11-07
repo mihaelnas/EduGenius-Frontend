@@ -34,16 +34,16 @@ import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { ScrollArea } from '../ui/scroll-area';
 import { AppUser } from '@/lib/placeholder-data';
+import { useToast } from '@/hooks/use-toast';
+import { useFirestore } from '@/firebase';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 
 const baseSchema = z.object({
   role: z.enum(['student', 'teacher', 'admin']),
-  prenom: z.string().min(1, { message: 'Le prénom est requis.' }),
-  nom: z.string().min(1, { message: 'Le nom est requis.' }),
+  firstName: z.string().min(1, { message: 'Le prénom est requis.' }),
+  lastName: z.string().min(1, { message: 'Le nom est requis.' }),
   username: z.string().min(2, { message: "Le nom d'utilisateur est requis." }).startsWith('@', { message: 'Doit commencer par @.' }),
   email: z.string().email({ message: 'Email invalide.' }),
-  // Password is not needed when an admin creates a user, let's make it optional or handle it differently
-  // For now, we will omit it from creation, as firebase auth is separate.
-  // password: z.string().min(8, { message: 'Au moins 8 caractères.' }),
   photo: z.string().url({ message: 'URL invalide.' }).optional().or(z.literal('')),
 });
 
@@ -72,8 +72,6 @@ const adminSchema = baseSchema.extend({
     role: z.literal('admin'),
 });
 
-// We can't create auth users from here directly. This form should only create the user document in firestore.
-// Auth user creation should be handled via the register page or a specific admin action.
 const formSchema = z.discriminatedUnion('role', [studentSchema, teacherSchema, adminSchema]);
 type FormValues = z.infer<typeof formSchema>;
 
@@ -85,8 +83,8 @@ type AddUserDialogProps = {
 
 const initialValues = {
   role: 'student' as const,
-  prenom: '',
-  nom: '',
+  firstName: '',
+  lastName: '',
   username: '@',
   email: '',
   photo: '',
@@ -105,6 +103,9 @@ const initialValues = {
 };
 
 export function AddUserDialog({ isOpen, setIsOpen, onUserAdded }: AddUserDialogProps) {
+  const { toast } = useToast();
+  const firestore = useFirestore();
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: initialValues,
@@ -115,7 +116,20 @@ export function AddUserDialog({ isOpen, setIsOpen, onUserAdded }: AddUserDialogP
     name: 'role',
   });
   
-  function onSubmit(values: FormValues) {
+  async function onSubmit(values: FormValues) {
+    if (values.role === 'student') {
+        const usersRef = collection(firestore, 'users');
+        const q = query(usersRef, where('username', '==', values.username));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+            form.setError('username', {
+                type: 'manual',
+                message: "Ce nom d'utilisateur est déjà pris.",
+            });
+            return;
+        }
+    }
+
     onUserAdded(values);
     setIsOpen(false);
     form.reset(initialValues);
@@ -131,14 +145,14 @@ export function AddUserDialog({ isOpen, setIsOpen, onUserAdded }: AddUserDialogP
   const handlePrenomBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     const value = e.target.value;
     if (value) {
-      form.setValue('prenom', value.charAt(0).toUpperCase() + value.slice(1).toLowerCase(), { shouldValidate: true });
+      form.setValue('firstName', value.charAt(0).toUpperCase() + value.slice(1).toLowerCase(), { shouldValidate: true });
     }
   };
 
   const handleNomBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     const value = e.target.value;
     if (value) {
-      form.setValue('nom', value.toUpperCase(), { shouldValidate: true });
+      form.setValue('lastName', value.toUpperCase(), { shouldValidate: true });
     }
   };
 
@@ -185,8 +199,8 @@ export function AddUserDialog({ isOpen, setIsOpen, onUserAdded }: AddUserDialogP
                         />
             
                         <div className="grid grid-cols-2 gap-4">
-                            <FormField control={form.control} name="prenom" render={({ field }) => ( <FormItem><FormLabel>Prénom</FormLabel><FormControl><Input placeholder="Jean" {...field} onBlur={handlePrenomBlur} /></FormControl><FormMessage /></FormItem> )} />
-                            <FormField control={form.control} name="nom" render={({ field }) => ( <FormItem><FormLabel>Nom</FormLabel><FormControl><Input placeholder="DUPONT" {...field} onBlur={handleNomBlur} /></FormControl><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="firstName" render={({ field }) => ( <FormItem><FormLabel>Prénom</FormLabel><FormControl><Input placeholder="Jean" {...field} onBlur={handlePrenomBlur} /></FormControl><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="lastName" render={({ field }) => ( <FormItem><FormLabel>Nom</FormLabel><FormControl><Input placeholder="DUPONT" {...field} onBlur={handleNomBlur} /></FormControl><FormMessage /></FormItem> )} />
                         </div>
 
                         <FormField control={form.control} name="username" render={({ field }) => ( <FormItem><FormLabel>Nom d'utilisateur</FormLabel><FormControl><Input placeholder="@jeandupont" {...field} /></FormControl><FormMessage /></FormItem> )} />

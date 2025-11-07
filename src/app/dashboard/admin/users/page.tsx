@@ -36,7 +36,7 @@ export default function AdminUsersPage() {
         ...newUser,
         status: 'active',
         createdAt: new Date().toISOString().split('T')[0],
-        photo: newUser.photo || `https://i.pravatar.cc/150?u=${newUser.email}`
+        photo: newUser.photo || undefined
     };
     addDocumentNonBlocking(usersCollectionRef, newUserData);
     toast({
@@ -144,7 +144,7 @@ export default function AdminUsersPage() {
                       <div className="flex items-center gap-3">
                         <Avatar className="h-9 w-9">
                           <AvatarImage src={user.photo} alt={getDisplayName(user)} />
-                          <AvatarFallback>{(user.prenom || user.firstName || 'U').charAt(0)}{(user.nom || user.lastName || 'U').charAt(0)}</AvatarFallback>
+                          <AvatarFallback>{(user.firstName || 'U').charAt(0)}{(user.lastName || 'U').charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div className="grid gap-0.5">
                             <span className="font-semibold">{getDisplayName(user)}</span>
