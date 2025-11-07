@@ -16,26 +16,50 @@ import {
 import { LogIn, LogOut, Settings, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { signOut } from 'firebase/auth';
+import type { AppUser } from '@/lib/placeholder-data';
+import { doc, getDoc } from 'firebase/firestore';
 
 export function UserNav() {
   const router = useRouter();
-  const auth = useAuth();
-  const user = auth.currentUser;
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+  const [userProfile, setUserProfile] = React.useState<AppUser | null>(null);
+
+  React.useEffect(() => {
+    if (user) {
+      const userDocRef = doc(firestore, 'users', user.uid);
+      const unsubscribe = getDoc(userDocRef).then((docSnap) => {
+        if (docSnap.exists()) {
+          setUserProfile(docSnap.data() as AppUser);
+        }
+      });
+    } else if (!isUserLoading) {
+      setUserProfile(null);
+    }
+  }, [user, firestore, isUserLoading]);
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
-      router.push('/login');
+      if (user) {
+        await signOut(user.auth);
+        router.push('/login');
+      }
     } catch (error) {
       console.error('Logout Error:', error);
     }
   };
+  
+  if (isUserLoading) {
+    return <div className="h-9 w-9 rounded-full bg-muted animate-pulse" />;
+  }
 
-  const displayName = user?.displayName || 'Utilisateur';
-  const displayEmail = user?.email || '';
-  const photoURL = user?.photoURL || `https://i.pravatar.cc/150?u=${displayEmail}`;
+  const displayName = userProfile?.firstName ? `${userProfile.firstName} ${userProfile.lastName}` : user?.displayName || 'Utilisateur';
+  const displayEmail = userProfile?.email || user?.email || '';
+  const photoURL = userProfile?.photo || user?.photoURL;
+  const fallback = (userProfile?.firstName?.charAt(0) || '') + (userProfile?.lastName?.charAt(0) || '') || displayName.charAt(0);
+
 
   return (
     <DropdownMenu>
@@ -43,7 +67,7 @@ export function UserNav() {
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-9 w-9">
             <AvatarImage src={photoURL} alt={displayName} />
-            <AvatarFallback>{displayName.charAt(0).toUpperCase()}</AvatarFallback>
+            <AvatarFallback>{fallback.toUpperCase()}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
