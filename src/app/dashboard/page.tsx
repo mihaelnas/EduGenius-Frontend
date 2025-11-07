@@ -92,10 +92,11 @@ export default function DashboardPage() {
 
     React.useEffect(() => {
         async function fetchStudentData() {
-            if (!studentClass || !firestore) {
-                if (userRole === 'student' && !studentClassLoading) {
-                    setIsStudentDataLoading(false);
-                }
+            if (userRole !== 'student' || studentClassLoading) {
+                return;
+            }
+            if (!studentClass) {
+                setIsStudentDataLoading(false);
                 return;
             }
             
@@ -103,6 +104,12 @@ export default function DashboardPage() {
 
             // 1. Find all teachers for the student's class
             const teacherIds = studentClass.teacherIds;
+            if (!teacherIds || teacherIds.length === 0) {
+              setStudentSubjects([]);
+              setRecentCourses([]);
+              setIsStudentDataLoading(false);
+              return;
+            }
 
             // 2. Find all subjects taught by those teachers
             const subjectsQuery = query(collection(firestore, 'subjects'), where('teacherId', 'in', teacherIds));
@@ -124,7 +131,15 @@ export default function DashboardPage() {
 
                 const coursesSnapshots = await Promise.all(coursesPromises);
                 const allRecentCourses = coursesSnapshots
-                    .flatMap(snapshot => snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Course)));
+                    .flatMap(snapshot => snapshot.docs.map(doc => {
+                       const data = doc.data();
+                       // Ensure createdAt exists and is valid before creating Date object
+                       const createdAt = data.createdAt && typeof data.createdAt === 'string' 
+                           ? new Date(data.createdAt).toISOString()
+                           : new Date(0).toISOString(); // Fallback date
+
+                       return { ...data, id: doc.id, createdAt } as Course
+                    }));
 
                 // Sort all collected courses by date and take the top 3 overall
                 const sortedCourses = allRecentCourses.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());

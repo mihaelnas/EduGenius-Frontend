@@ -2,7 +2,7 @@
 'use client';
 
 import React from 'react';
-import { useParams, notFound, useRouter } from 'next/navigation';
+import { useParams, notFound } from 'next/navigation';
 import Link from 'next/link';
 import {
   Course,
@@ -10,7 +10,7 @@ import {
   Resource,
 } from '@/lib/placeholder-data';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ArrowLeft, Paperclip, Video, Link as LinkIcon, ChevronRight } from 'lucide-react';
+import { Paperclip, Video, Link as LinkIcon, ChevronRight } from 'lucide-react';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
