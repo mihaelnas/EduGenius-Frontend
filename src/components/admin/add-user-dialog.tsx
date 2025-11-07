@@ -187,62 +187,69 @@ export function AddUserDialog({ isOpen, setIsOpen, onUserAdded }: AddUserDialogP
 
   async function onSubmit(values: FormValues) {
     if (!adminUser) {
-        toast({
-            variant: 'destructive',
-            title: "Erreur d'authentification",
-            description: "Administrateur non connecté.",
-        });
-        return;
+      toast({
+        variant: 'destructive',
+        title: "Erreur d'authentification",
+        description: 'Administrateur non connecté.',
+      });
+      return;
     }
 
     try {
-        const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-        const newUser = userCredential.user;
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        values.email,
+        values.password
+      );
+      const newUser = userCredential.user;
 
-        // Set display name and photo for the new user
-        await updateProfile(newUser, {
-            displayName: `${values.firstName} ${values.lastName}`,
-            photoURL: values.photo || null,
-        });
-        
-        const { password, ...userData } = values;
-        const userProfile: Omit<AppUser, 'id'> = {
-            ...userData,
-            status: 'active',
-            createdAt: new Date().toISOString(),
-        };
-        
-        if (!userProfile.photo) {
-            delete userProfile.photo;
-        }
+      await updateProfile(newUser, {
+        displayName: `${values.firstName} ${values.lastName}`,
+        photoURL: values.photo || null,
+      });
 
-        const userDocRef = doc(firestore, 'users', newUser.uid);
-        await setDoc(userDocRef, userProfile);
+      const { password, ...userData } = values;
+      const userProfile: Omit<AppUser, 'id'> = {
+        ...userData,
+        status: 'active',
+        createdAt: new Date().toISOString(),
+      };
 
-        // Sign out the newly created user to keep the admin session active
+      if (!userProfile.photo) {
+        delete userProfile.photo;
+      }
+
+      const userDocRef = doc(firestore, 'users', newUser.uid);
+      await setDoc(userDocRef, userProfile);
+
+      // Déconnecte le nouvel utilisateur pour que l'admin reste connecté
+      if (auth.currentUser?.uid === newUser.uid) {
         await signOut(auth);
+      }
 
-        toast({
-            title: 'Utilisateur créé',
-            description: `Le compte pour ${values.firstName} ${values.lastName} a été créé.`,
-        });
+      toast({
+        title: 'Utilisateur créé',
+        description: `Le compte pour ${values.firstName} ${values.lastName} a été créé.`,
+      });
 
-        onUserAdded({ ...userProfile, id: newUser.uid });
+      onUserAdded({ ...userProfile, id: newUser.uid });
 
-        setIsOpen(false);
-        form.reset(initialValues);
-
+      setIsOpen(false);
+      form.reset(initialValues);
     } catch (error: any) {
-        console.error("User creation error:", error);
-        if (error.code === 'auth/email-already-in-use') {
-            form.setError('email', { type: 'manual', message: 'Cet email est déjà utilisé.' });
-        } else {
-             toast({
-                variant: 'destructive',
-                title: "Échec de la création",
-                description: error.message || "Une erreur est survenue.",
-            });
-        }
+      console.error('User creation error:', error);
+      if (error.code === 'auth/email-already-in-use') {
+        form.setError('email', {
+          type: 'manual',
+          message: 'Cet email est déjà utilisé.',
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Échec de la création',
+          description: error.message || 'Une erreur est survenue.',
+        });
+      }
     }
   }
   
@@ -251,7 +258,7 @@ export function AddUserDialog({ isOpen, setIsOpen, onUserAdded }: AddUserDialogP
     if (!open) {
       form.reset(initialValues);
     }
-  }
+  };
 
   const handlePrenomBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     const value = e.target.value;
