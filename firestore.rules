@@ -2,197 +2,201 @@
  * @fileoverview Firestore Security Rules for EduGenius platform.
  *
  * Core Philosophy:
- * This ruleset enforces a user-ownership model for user profiles and schedules,
- * and a role-based access control model for classes, subjects, and courses.
- * Authorization Independence is achieved through path-based ownership for user-specific data (e.g., schedules)
- * and membership maps where collaborative access is required (e.g., classes with multiple teachers and students).
- * This avoids the need for get() calls in security rules, enabling atomic operations.
+ * This ruleset enforces a role-based access control model, supplemented by
+ * ownership checks where applicable. It prioritizes Authorization Independence
+ * and Structural Segregation to optimize security and performance.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profile information; only the user can access their own profile.
- * - /classes/{classId}: Stores class information; access is controlled by a 'members' map within each document.
- * - /subjects/{subjectId}: Stores subject information; accessible by admins and teachers assigned to the subject.
- * - /courses/{courseId}: Stores course content; accessible to teachers assigned to the corresponding subject.
- * - /classStudents/{classStudentId}: Represents the many-to-many relationship between classes and students.
- * - /classTeachers/{classTeacherId}: Represents the one-to-many relationship between classes and teachers.
- * - /users/{userId}/schedules/{scheduleId}: Stores schedules for teachers; only the teacher can access their schedule.
+ * - /users/{userId}: Stores user profiles, accessible only to the user and admins.
+ * - /classes/{classId}: Stores class information, access controlled based on
+ *   teacher assignments.
+ * - /subjects/{subjectId}: Stores subject information, access controlled by
+ *   the assigned teacher.
+ * - /subjects/{subjectId}/courses/{courseId}: Stores course information, access
+ *   controlled by the parent subject's teacher.
+ * - /class_students/{classStudentId}: Represents the relationship between a class
+ *   and a student.
+ * - /class_teachers/{classTeacherId}: Represents the assignment of a teacher to
+ *   a class.
+ * - /roles_admin/{userId}: Indicates admin role for a user. The existence of
+ *   this document grants admin rights.
  *
  * Key Security Decisions:
- * - Users can only access their own profile data.
- * - Classes have a 'members' map controlling access for teachers and students.
- * - Subjects are accessible by admins and assigned teachers.
- * - Courses are accessible by teachers assigned to the corresponding subject.
- * - User listing is disabled.
+ * - User listing is denied to prevent information leakage.
+ * - Admin privileges are determined by the existence of a document in the
+ *   /roles_admin/{userId} collection.
+ * - Read-only collections are not explicitly defined but can be achieved by
+ *   allowing `get` and `list` while denying `create`, `update`, and `delete`.
  *
  * Denormalization for Authorization:
- * - Class documents contain a 'members' map with user IDs and their roles (teacher, student).
+ * - The `Subject` entity includes a `teacherId` field to directly authorize
+ *   course creation and modification under that subject.
  *
  * Structural Segregation:
- * - User profiles, classes, subjects, and courses are stored in distinct collections for homogeneous security postures.
+ * - User-specific data is stored under /users/{userId} to ensure privacy.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to user profile information.
+     * @description Checks if the current user is signed in.
+     * @returns {boolean} True if the user is signed in, false otherwise.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the authenticated user's UID matches the provided userId.
+     * @param {string} userId The user ID to compare against the authenticated user's UID.
+     * @returns {boolean} True if the user is the owner, false otherwise.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the authenticated user is an existing owner of the document.
+     * @param {string} userId The user ID to compare against the document's owner ID.
+     * @returns {boolean} True if the user is the owner and the document exists, false otherwise.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Checks if the user has admin rights by checking if the document exists
+     *              in `/roles_admin/{userId}`.
+     * @returns {boolean} True if the user is an admin, false otherwise.
+     */
+    function isAdmin() {
+        return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    /**
+     * @description Rules for user profiles.
      * @path /users/{userId}
-     * @allow (create) User with ID 'user123' can create their own profile.
-     * @deny (create) User with ID 'user456' cannot create a profile with ID 'user123'.
-     * @allow (get, update, delete) User with ID 'user123' can get, update, and delete their own profile.
-     * @deny (get, update, delete) User with ID 'user456' cannot get, update, or delete profile 'user123'.
-     * @principle Enforces document ownership for reads and writes; user can only access their own profile.
+     * @allow (create) User with ID 'user123' creates their own profile.
+     *     request.auth.uid == 'user123' and request.resource.data.id == 'user123'
+     * @allow (get, update, delete) User with ID 'user123' reads, updates, or deletes their own profile.
+     *     request.auth.uid == 'user123'
+     * @deny (create) User with ID 'user123' tries to create a profile with a different ID 'user456'.
+     *     request.auth.uid == 'user123' and request.resource.data.id == 'user456'
+     * @principle Enforces document ownership and prevents unauthorized access to user profiles.
      */
     match /users/{userId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-          return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if false; // User listing is not permitted.
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if false; // Prevent listing all users
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Controls access to class information.
+     * @description Rules for class information.
      * @path /classes/{classId}
-     * @allow (get, list) Any authenticated user can view class information.
-     * @allow (create, update, delete) Only class members with 'teacher' role can create, update, or delete class information.
-     * @deny (create, update, delete) Users who are not class members or do not have 'teacher' role cannot create, update, or delete class information.
-     * @principle Enforces role-based access control for class management.
+     * @allow (get, list) Public read access to class information.
+     * @allow (create) Admin creates a new class.
+     * @allow (update, delete) Admin updates or deletes a class.
+     * @deny (create, update, delete) Non-admin users cannot create, update, or delete classes.
+     * @principle Allows public read access but restricts write access to admins.
      */
     match /classes/{classId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isTeacher() {
-        return resource.data.members[request.auth.uid] == 'teacher';
-      }
-
-      allow get, list: if true; // Any authenticated user can view class information.
-      allow create: if isSignedIn(); // CRITICAL: Cannot implement teacher-only writes. The 'Class' entity is missing an 'ownerId' or 'authorId' field.
-      allow update: if isTeacher() && resource != null;
-      allow delete: if isTeacher() && resource != null;
+      allow get, list: if true;
+      allow create: if isAdmin();
+      allow update: if isAdmin() && resource != null;
+      allow delete: if isAdmin() && resource != null;
     }
 
     /**
-     * @description Controls access to subject information.
+     * @description Rules for subject information.
      * @path /subjects/{subjectId}
-     * @allow (get, list) Any authenticated user can view subject information.
-     * @allow (create) Only teachers can create subjects. The teacherId field must match the user's ID.
-     * @allow (update, delete) Only the teacher who created the subject can update or delete it.
-     * @deny (create, update, delete) Non-teachers cannot create, update, or delete subjects.
-     * @principle Enforces teacher-based access control for subject management.
+     * @allow (get, list) Public read access to subject information.
+     * @allow (create) Teacher with ID 'teacher123' creates a new subject.
+     *     request.auth.uid == 'teacher123' and request.resource.data.teacherId == 'teacher123'
+     * @allow (update, delete) Teacher with ID 'teacher123' updates or deletes their own subject.
+     *     request.auth.uid == 'teacher123' and resource.data.teacherId == 'teacher123'
+     * @deny (create) Teacher with ID 'teacher123' tries to create a subject for another teacher 'teacher456'.
+     *     request.auth.uid == 'teacher123' and request.resource.data.teacherId == 'teacher456'
+     * @principle Enforces teacher ownership for subject creation and modification.
      */
     match /subjects/{subjectId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isTeacherOfSubject() {
-        return resource.data.teacherId == request.auth.uid;
-      }
-
-      function isExistingTeacherOfSubject() {
-        return isTeacherOfSubject() && resource != null;
-      }
-
-      allow get, list: if true; // Any authenticated user can view subject information.
+      allow get, list: if true;
       allow create: if isSignedIn() && request.resource.data.teacherId == request.auth.uid;
-      allow update: if isExistingTeacherOfSubject();
-      allow delete: if isExistingTeacherOfSubject();
+      allow update: if isSignedIn() && resource != null && resource.data.teacherId == request.auth.uid;
+      allow delete: if isSignedIn() && resource != null && resource.data.teacherId == request.auth.uid;
     }
 
     /**
-     * @description Controls access to course information.
-     * @path /courses/{courseId}
-     * @allow (get, list) Any authenticated user can view course information.
-     * @allow (create) Only teachers assigned to the subject can create courses.
-     * @allow (update, delete) Only the teacher who created the course's subject can update or delete it.
-     * @deny (create, update, delete) Non-teachers or teachers not assigned to the subject cannot create, update, or delete courses.
-     * @principle Enforces teacher-based access control for course management.
+     * @description Rules for courses within a subject.
+     * @path /subjects/{subjectId}/courses/{courseId}
+     * @allow (get, list) Public read access to course information.
+     * @allow (create) Teacher with ID 'teacher123' creates a new course under their subject.
+     *     request.auth.uid == 'teacher123'
+     *     and get(/databases/$(database)/documents/subjects/$(subjectId)).data.teacherId == 'teacher123'
+     * @allow (update, delete) Teacher with ID 'teacher123' updates or deletes a course under their subject.
+     *     request.auth.uid == 'teacher123'
+     *     and get(/databases/$(database)/documents/subjects/$(subjectId)).data.teacherId == 'teacher123'
+     * @deny (create) Teacher with ID 'teacher123' tries to create a course under a subject owned by another teacher.
+     *     request.auth.uid == 'teacher123'
+     *     and get(/databases/$(database)/documents/subjects/$(subjectId)).data.teacherId == 'teacher456'
+     * @principle Enforces teacher ownership for course creation and modification, based on the parent subject.
      */
-    match /courses/{courseId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      // TODO: Implement a function to check if the user is a teacher of the subject the course belongs to.
-      // This will likely require a get() call to the /subjects collection to verify the teacherId.
-      // However, to avoid get() calls, consider denormalizing the teacherId onto the course document.
-
-      allow get, list: if true; // Any authenticated user can view course information.
-      allow create: if isSignedIn(); // TODO: Validate that the user is a teacher for the subject.
-      allow update: if false; // TODO: Validate that the user is a teacher for the subject and that the document exists.
-      allow delete: if false; // TODO: Validate that the user is a teacher for the subject and that the document exists.
-    }
-
-    /**
-     * @description Controls access to ClassStudent relationship entries.
-     * @path /classStudents/{classStudentId}
-     * @allow (get, list) Any authenticated user can view class-student relationships.
-     * @allow (create) Any authenticated user can create class-student relationships.
-     * @allow (update, delete) Only authenticated users can update or delete class-student relationships.
-     * @principle Allows any authenticated user to manage class-student relationships.
-     */
-    match /classStudents/{classStudentId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
+    match /subjects/{subjectId}/courses/{courseId} {
       allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+      allow create: if isSignedIn() && get(/databases/$(database)/documents/subjects/$(subjectId)).data.teacherId == request.auth.uid;
+      allow update: if isSignedIn() && resource != null && get(/databases/$(database)/documents/subjects/$(subjectId)).data.teacherId == request.auth.uid;
+      allow delete: if isSignedIn() && resource != null && get(/databases/$(database)/documents/subjects/$(subjectId)).data.teacherId == request.auth.uid;
+    }
+
+     /**
+      * @description Rules for the class-student relationship.
+      * @path /class_students/{classStudentId}
+      * @allow get, list: if isAdmin();
+      * @allow create: if isAdmin();
+      * @allow update: if isAdmin() && resource != null;
+      * @allow delete: if isAdmin() && resource != null;
+      * @principle Only admin can manage relationship between class and student
+      */
+     match /class_students/{classStudentId} {
+      allow get, list: if isAdmin();
+      allow create: if isAdmin();
+      allow update: if isAdmin() && resource != null;
+      allow delete: if isAdmin() && resource != null;
     }
 
     /**
-     * @description Controls access to ClassTeacher relationship entries.
-     * @path /classTeachers/{classTeacherId}
-     * @allow (get, list) Any authenticated user can view class-teacher relationships.
-     * @allow (create) Any authenticated user can create class-teacher relationships.
-     * @allow (update, delete) Only authenticated users can update or delete class-teacher relationships.
-     * @principle Allows any authenticated user to manage class-teacher relationships.
+     * @description Rules for the class-teacher relationship.
+     * @path /class_teachers/{classTeacherId}
+     * @allow get, list: if isAdmin();
+     * @allow create: if isAdmin();
+     * @allow update: if isAdmin() && resource != null;
+     * @allow delete: if isAdmin() && resource != null;
+     * @principle Only admin can manage relationship between class and teacher
      */
-    match /classTeachers/{classTeacherId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+    match /class_teachers/{classTeacherId} {
+      allow get, list: if isAdmin();
+      allow create: if isAdmin();
+      allow update: if isAdmin() && resource != null;
+      allow delete: if isAdmin() && resource != null;
     }
-
+    
     /**
-     * @description Controls access to schedule information for a teacher.
-     * @path /users/{userId}/schedules/{scheduleId}
-     * @allow (get, update, delete) Only the teacher (user) with the matching ID can get, update, and delete their schedule.
-     * @deny (get, update, delete) Other users cannot access or modify the schedule.
-     * @principle Enforces document ownership for schedules.
+     * @description Rules for admin roles.
+     * @path /roles_admin/{userId}
+     * @allow get: if isAdmin();
+     * @allow list: if false;
+     * @allow create: if request.auth.uid == userId && isAdmin();
+     * @allow update: if false;
+     * @allow delete: if isAdmin();
      */
-    match /users/{userId}/schedules/{scheduleId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-          return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.teacherId == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.teacherId == userId;
-      allow delete: if isExistingOwner(userId);
+    match /roles_admin/{userId} {
+       allow get: if isAdmin();
+       allow list: if false;
+       allow create: if request.auth.uid == userId && isAdmin();
+       allow update: if false;
+       allow delete: if isAdmin();
     }
   }
 }
