@@ -71,13 +71,7 @@ export default function AdminUsersPage() {
       
       const userDocRef = doc(firestore, 'users', newUser.uid);
       
-      // The currently logged-in admin creates the Firestore document.
-      // This uses the main auth instance, not the temporary one.
-      setDoc(userDocRef, userProfile).then(() => {
-        toast({
-          title: `Utilisateur ${getDisplayName(values)} ajouté.`,
-        });
-      }).catch(error => {
+      setDoc(userDocRef, userProfile).catch(error => {
         // This will now properly catch and display permission errors
         const permissionError = new FirestorePermissionError({
           path: userDocRef.path,
@@ -87,17 +81,25 @@ export default function AdminUsersPage() {
         errorEmitter.emit('permission-error', permissionError);
       });
       
-      // The temporary auth instance is not needed anymore
-      // Firebase doesn't have a public API to delete app instances,
-      // but they are garbage collected.
+      toast({
+        title: `Utilisateur ${getDisplayName(values)} ajouté.`,
+      });
 
     } catch (error: any) {
       console.error("Erreur de création d'utilisateur:", error);
-      toast({
-        variant: 'destructive',
-        title: 'Échec de la création',
-        description: error.code === 'auth/email-already-in-use' ? 'Cette adresse e-mail est déjà utilisée.' : error.message,
-      });
+      if (error.code === 'auth/email-already-in-use') {
+        toast({
+          variant: 'destructive',
+          title: 'Échec de la création',
+          description: 'Cette adresse e-mail est déjà utilisée.',
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Échec de la création',
+          description: error.message || "Une erreur inconnue est survenue.",
+        });
+      }
     }
   };
 
@@ -267,5 +269,3 @@ export default function AdminUsersPage() {
     </>
   );
 }
-
-    
