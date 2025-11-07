@@ -40,20 +40,14 @@ export default function AdminUsersPage() {
   const usersCollectionRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
   const { data: users, isLoading } = useCollection<AppUser>(usersCollectionRef);
 
-  const handleAdd = (newUser: Omit<AppUser, 'id' | 'status' | 'createdAt'>) => {
-    const newUserData: Omit<AppUser, 'id'> = {
-        ...newUser,
-        status: 'active',
-        createdAt: new Date().toISOString(),
-    };
-    if (!newUserData.photo) {
-        delete (newUserData as Partial<AppUser>).photo;
-    }
-    
-    addDocumentNonBlocking(usersCollectionRef, newUserData);
+  const handleAdd = (newUser: AppUser) => {
+    // This is now handled by the dialog which also creates the Auth user.
+    // The parent page just needs to know about the new user to update the UI.
+    // The data is already live from Firestore, so we might not even need this.
+    // But for instant UI feedback before Firestore syncs, you could add it to a local state.
     toast({
       title: 'Utilisateur ajouté',
-      description: `L'utilisateur ${getDisplayName(newUserData)} a été créé.`,
+      description: `L'utilisateur ${getDisplayName(newUser)} a été créé.`,
     });
   };
 
@@ -220,3 +214,5 @@ export default function AdminUsersPage() {
     </>
   );
 }
+
+    
