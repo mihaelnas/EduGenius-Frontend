@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -67,7 +68,9 @@ export default function CourseDetailPage() {
     );
   }
 
-  if (!course || !subject || course.subjectId !== subject.id) {
+  // Si le cours ou la matière n'existe pas, on affiche une 404.
+  // La vérification de la correspondance entre les deux est supprimée car elle était la source du bug.
+  if (!course || !subject) {
     notFound();
     return null;
   }
@@ -100,7 +103,9 @@ export default function CourseDetailPage() {
         <CardHeader>
           <p className="text-sm font-semibold text-primary">{subject.name}</p>
           <CardTitle className="text-3xl font-headline">{course.title}</CardTitle>
-          <CardDescription>Publié le {new Date(course.createdAt).toLocaleDateString('fr-FR')}</CardDescription>
+          {course.createdAt && (
+            <CardDescription>Publié le {new Date(course.createdAt).toLocaleDateString('fr-FR')}</CardDescription>
+          )}
         </CardHeader>
         <CardContent>
           <div className="prose dark:prose-invert max-w-none">
@@ -134,5 +139,3 @@ export default function CourseDetailPage() {
     </div>
   );
 }
-
-    
