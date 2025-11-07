@@ -150,25 +150,14 @@ export default function TeacherSchedulePage() {
         <div>
           <Card>
             <CardContent className="p-0">
-               {date !== undefined ? (
-                <Calendar
+               <Calendar
                   mode="single"
                   selected={date}
                   onSelect={handleDateSelect}
                   className="rounded-md"
                   locale={fr}
                   defaultMonth={date || new Date()}
-                  disabled={(d) => {
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    return d < today;
-                  }}
                 />
-              ) : (
-                <div className="p-3">
-                  <Skeleton className="h-[298px] w-full" />
-                </div>
-              )}
             </CardContent>
           </Card>
         </div>
