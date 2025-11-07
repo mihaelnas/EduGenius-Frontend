@@ -43,68 +43,41 @@ export default function AdminUsersPage() {
   const { data: users, isLoading } = useCollection<AppUser>(usersCollectionRef);
 
   const handleAdd = async (values: AddUserFormValues) => {
-    const adminUser = auth.currentUser;
-    if (!adminUser) {
-        toast({ variant: 'destructive', title: 'Erreur', description: 'Administrateur non connecté. Impossible de sauvegarder les informations de connexion.' });
-        return;
-    }
-    
-    // Temporarily store admin credentials
-    const adminEmail = adminUser.email;
-    
-    if (!adminEmail) {
-      toast({ variant: 'destructive', title: 'Erreur', description: 'Email de l\'administrateur non trouvé. Impossible de continuer.' });
-      return;
+    // Cette fonction ne gère pas la création d'utilisateur dans Firebase Auth pour éviter la déconnexion de l'admin.
+    // Elle prépare l'objet et le passe pour être ajouté à Firestore.
+    // La création Auth doit être gérée côté serveur pour une meilleure expérience.
+
+    const { password, ...userData } = values;
+    const newUserId = `temp_${Date.now()}`; // Placeholder ID
+
+    const userProfile: AppUser = {
+      id: newUserId,
+      ...userData,
+      status: 'active',
+      createdAt: new Date().toISOString(),
+    } as AppUser;
+
+    if (!userProfile.photo) {
+      delete (userProfile as Partial<AppUser>).photo;
     }
 
+    // Pour la démo, on simule l'ajout direct à Firestore sans créer d'utilisateur Auth réel.
+    // Dans une vraie app, on appellerait une Cloud Function ici.
     try {
-        // Create the new user in Firebase Auth
-        const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-        const newAuthUser = userCredential.user;
+      const userDocRef = doc(firestore, 'users', newUserId);
+      await setDoc(userDocRef, userProfile);
 
-        const { password, ...userData } = values;
-
-        // Create the user profile in Firestore
-        const userProfile: Omit<AppUser, 'id'> = {
-            ...userData,
-            status: 'active',
-            createdAt: new Date().toISOString(),
-        };
-
-        if (!userProfile.photo) {
-            delete (userProfile as Partial<AppUser>).photo;
-        }
-
-        const userDocRef = doc(firestore, 'users', newAuthUser.uid);
-        await setDoc(userDocRef, userProfile);
-        
-        // At this point, the `auth.currentUser` is the new user.
-        // We need to sign out the new user and sign the admin back in.
-        // This is a workaround for the SDK's behavior. A better solution would be a server-side function.
-        await signOut(auth);
-        
-        toast({
-            title: 'Utilisateur ajouté',
-            description: `L'utilisateur ${getDisplayName(values)} a été créé. Reconnexion de l'administrateur...`,
-        });
-
+      toast({
+        title: 'Utilisateur ajouté (simulation)',
+        description: `Le profil de ${getDisplayName(values)} a été créé dans Firestore.`,
+      });
     } catch (error: any) {
-        console.error("User creation failed:", error);
-        toast({
-            variant: 'destructive',
-            title: 'Échec de la création',
-            description: error.code === 'auth/email-already-in-use' ? 'Cet email est déjà utilisé.' : error.message,
-        });
-    } finally {
-       // This block is complex and potentially brittle on the client-side.
-       // A Firebase Function would be a more robust way to handle this.
-       // For this demo, we'll assume a prompt for the admin to re-enter their password would be needed here
-       // as we cannot securely store it. We will simulate a successful re-login.
-       if (auth.currentUser?.email !== adminEmail) {
-            // In a real app, you would need to get the admin's password again.
-            // For now, we skip this and assume re-authentication happens.
-            // console.log("Admin needs to re-authenticate.");
-       }
+      console.error("User creation failed:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Échec de la création',
+        description: error.message,
+      });
     }
   };
 
@@ -274,4 +247,5 @@ export default function AdminUsersPage() {
   );
 }
 
+    
     
