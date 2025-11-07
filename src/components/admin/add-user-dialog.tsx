@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useCallback, useEffect } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -33,12 +33,6 @@ import { PlusCircle } from 'lucide-react';
 import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { ScrollArea } from '../ui/scroll-area';
-import { AppUser } from '@/lib/placeholder-data';
-import { useAuth, useFirestore } from '@/firebase';
-import { collection, doc, getDocs, query, setDoc, where } from 'firebase/firestore';
-import { debounce } from 'lodash';
-import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
-import { useToast } from '@/hooks/use-toast';
 
 const baseSchema = z.object({
   role: z.enum(['student', 'teacher', 'admin']),
@@ -76,12 +70,12 @@ const adminSchema = baseSchema.extend({
 });
 
 const formSchema = z.discriminatedUnion('role', [studentSchema, teacherSchema, adminSchema]);
-type FormValues = z.infer<typeof formSchema>;
+export type AddUserFormValues = z.infer<typeof formSchema>;
 
 type AddUserDialogProps = {
     isOpen: boolean;
     setIsOpen: (isOpen: boolean) => void;
-    onUserAdded: (newUser: AppUser) => void;
+    onUserAdded: (newUser: AddUserFormValues) => void;
 }
 
 const initialValues = {
@@ -107,12 +101,7 @@ const initialValues = {
 };
 
 export function AddUserDialog({ isOpen, setIsOpen, onUserAdded }: AddUserDialogProps) {
-  const firestore = useFirestore();
-  const auth = useAuth();
-  const { toast } = useToast();
-  
-
-  const form = useForm<FormValues>({
+  const form = useForm<AddUserFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: initialValues,
   });
@@ -121,129 +110,11 @@ export function AddUserDialog({ isOpen, setIsOpen, onUserAdded }: AddUserDialogP
     control: form.control,
     name: 'role',
   });
-  
-  const usernameValue = useWatch({
-    control: form.control,
-    name: 'username',
-  });
 
-  const matriculeValue = useWatch({
-      control: form.control,
-      name: 'matricule',
-  });
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const checkUsername = useCallback(
-    debounce(async (username: string) => {
-      if (username && username.length > 1) {
-        const usersRef = collection(firestore, 'users');
-        const q = query(usersRef, where('username', '==', username));
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-          form.setError('username', {
-            type: 'manual',
-            message: 'Ce nom d\'utilisateur est déjà pris.',
-          });
-        } else {
-          form.clearErrors('username');
-        }
-      }
-    }, 500),
-    [firestore, form]
-  );
-  
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const checkMatricule = useCallback(
-    debounce(async (matricule: string) => {
-      if (matricule) {
-        const usersRef = collection(firestore, 'users');
-        const q = query(usersRef, where('matricule', '==', matricule));
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-          form.setError('matricule', {
-            type: 'manual',
-            message: 'Ce numéro matricule est déjà utilisé.',
-          });
-        } else {
-          form.clearErrors('matricule');
-        }
-      }
-    }, 500),
-    [firestore, form]
-  );
-
-  useEffect(() => {
-    if (usernameValue && usernameValue.length > 1) {
-        checkUsername(usernameValue);
-    }
-  }, [usernameValue, checkUsername]);
-  
-  useEffect(() => {
-    if (role === 'student' && matriculeValue) {
-        checkMatricule(matriculeValue);
-    }
-  }, [matriculeValue, role, checkMatricule]);
-
-
-  async function onSubmit(values: FormValues) {
-    const adminUser = auth.currentUser;
-    if (!adminUser) {
-      toast({
-        variant: 'destructive',
-        title: "Erreur d'authentification",
-        description: 'Administrateur non connecté.',
-      });
-      return;
-    }
-
-    try {
-      const { user: newAuthUser } = await createUserWithEmailAndPassword(
-        auth,
-        values.email,
-        values.password
-      );
-      
-      const { password, ...userData } = values;
-      const userProfile: Omit<AppUser, 'id'> = {
-        ...userData,
-        status: 'active',
-        createdAt: new Date().toISOString(),
-      };
-
-      if (!userProfile.photo) {
-        delete (userProfile as Partial<AppUser>).photo;
-      }
-
-      const userDocRef = doc(firestore, 'users', newAuthUser.uid);
-      await setDoc(userDocRef, userProfile);
-      
-      // Critical: Sign out the newly created user to keep the admin session active.
-      await signOut(auth);
-
-      toast({
-        title: 'Utilisateur créé',
-        description: `Le compte pour ${values.firstName} ${values.lastName} a été créé.`,
-      });
-
-      onUserAdded({ ...userProfile, id: newAuthUser.uid });
-
-      setIsOpen(false);
-      form.reset(initialValues);
-    } catch (error: any) {
-      console.error('User creation error:', error);
-      if (error.code === 'auth/email-already-in-use') {
-        form.setError('email', {
-          type: 'manual',
-          message: 'Cet email est déjà utilisé.',
-        });
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Échec de la création',
-          description: error.message || 'Une erreur est survenue.',
-        });
-      }
-    }
+  function onSubmit(values: AddUserFormValues) {
+    onUserAdded(values);
+    setIsOpen(false);
+    form.reset(initialValues);
   }
   
   const handleOpenChange = (open: boolean) => {
@@ -337,8 +208,8 @@ export function AddUserDialog({ isOpen, setIsOpen, onUserAdded }: AddUserDialogP
 
                         {role === 'teacher' && (
                             <>
-                                <FormField control={form.control} name="emailPro" render={({ field }) => ( <FormItem><FormLabel>Email Professionnel</FormLabel><FormControl><Input placeholder="nom@univ.edu" type="email" {...field} /></FormControl><FormMessage /></FormMessage>)} />
-                                <FormField control={form.control} name="genre" render={({ field }) => ( <FormItem><FormLabel>Genre</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Sélectionner..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="Homme">Homme</SelectItem><SelectItem value="Femme">Femme</SelectItem></SelectContent></Select><FormMessage /></FormMessage>)} />
+                                <FormField control={form.control} name="emailPro" render={({ field }) => ( <FormItem><FormLabel>Email Professionnel</FormLabel><FormControl><Input placeholder="nom@univ.edu" type="email" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="genre" render={({ field }) => ( <FormItem><FormLabel>Genre</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Sélectionner..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="Homme">Homme</SelectItem><SelectItem value="Femme">Femme</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                                 <FormField control={form.control} name="telephone" render={({ field }) => ( <FormItem><FormLabel>Téléphone</FormLabel><FormControl><Input placeholder="0123456789" {...field} /></FormControl><FormMessage /></FormItem> )} />
                                 <FormField control={form.control} name="adresse" render={({ field }) => ( <FormItem><FormLabel>Adresse</FormLabel><FormControl><Input placeholder="123 Rue de Paris" {...field} /></FormControl><FormMessage /></FormItem> )} />
                                 <FormField control={form.control} name="specialite" render={({ field }) => ( <FormItem><FormLabel>Spécialité</FormLabel><FormControl><Input placeholder="Mathématiques" {...field} /></FormControl><FormMessage /></FormItem> )} />
