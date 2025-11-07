@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -15,7 +16,7 @@ import { DeleteConfirmationDialog } from '@/components/admin/delete-confirmation
 import { AssignSubjectTeacherDialog } from '@/components/admin/assign-subject-teacher-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, doc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, addDoc, updateDoc, deleteDoc, writeBatch, query, where, getDocs } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdminSubjectsPage() {
@@ -85,15 +86,39 @@ export default function AdminSubjectsPage() {
 
   const confirmDelete = async () => {
     if (selectedSubject) {
-      const subjectDocRef = doc(firestore, 'subjects', selectedSubject.id);
-      await deleteDoc(subjectDocRef);
-      toast({
-        variant: 'destructive',
-        title: 'Matière supprimée',
-        description: `La matière ${selectedSubject.name} a été supprimée.`,
-      });
-      setIsDeleteDialogOpen(false);
-      setSelectedSubject(null);
+        const batch = writeBatch(firestore);
+
+        // 1. Find and delete related courses
+        const coursesRef = collection(firestore, 'courses');
+        const coursesQuery = query(coursesRef, where('subjectId', '==', selectedSubject.id));
+        const coursesSnapshot = await getDocs(coursesQuery);
+        coursesSnapshot.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+
+        // 2. Find and delete related schedule events
+        const scheduleRef = collection(firestore, 'schedule');
+        const scheduleQuery = query(scheduleRef, where('subject', '==', selectedSubject.name));
+        const scheduleSnapshot = await getDocs(scheduleQuery);
+        scheduleSnapshot.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+
+        // 3. Delete the subject itself
+        const subjectDocRef = doc(firestore, 'subjects', selectedSubject.id);
+        batch.delete(subjectDocRef);
+
+        // Commit all operations
+        await batch.commit();
+
+        toast({
+            variant: 'destructive',
+            title: 'Matière et données associées supprimées',
+            description: `La matière "${selectedSubject.name}" ainsi que ses cours et événements ont été supprimés.`,
+        });
+
+        setIsDeleteDialogOpen(false);
+        setSelectedSubject(null);
     }
   };
 

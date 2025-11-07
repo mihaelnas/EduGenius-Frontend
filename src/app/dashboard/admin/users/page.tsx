@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -15,7 +16,7 @@ import { EditUserDialog } from '@/components/admin/edit-user-dialog';
 import { DeleteConfirmationDialog } from '@/components/admin/delete-confirmation-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useCollection, useFirestore, useMemoFirebase, useAuth } from '@/firebase';
-import { collection, doc, setDoc, deleteDoc, getDocs, writeBatch, updateDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, getDocs, writeBatch, updateDoc, query, where } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ViewDetailsButton } from '@/components/admin/view-details-button';
 import { format } from 'date-fns';
@@ -124,48 +125,78 @@ export default function AdminUsersPage() {
     if (selectedUser) {
         const userId = selectedUser.id;
         const userDocRef = doc(firestore, 'users', userId);
+        const batch = writeBatch(firestore);
 
         // If the user is a student, remove them from all classes
         if (selectedUser.role === 'student') {
             const classesRef = collection(firestore, 'classes');
-            const classesSnapshot = await getDocs(classesRef);
-            const batch = writeBatch(firestore);
+            const classesQuery = query(classesRef, where('studentIds', 'array-contains', userId));
+            const classesSnapshot = await getDocs(classesQuery);
 
             classesSnapshot.forEach(classDoc => {
                 const classData = classDoc.data() as Class;
-                if (classData.studentIds?.includes(userId)) {
-                    const updatedStudentIds = classData.studentIds.filter(id => id !== userId);
-                    batch.update(classDoc.ref, { studentIds: updatedStudentIds });
-                }
+                const updatedStudentIds = classData.studentIds.filter(id => id !== userId);
+                batch.update(classDoc.ref, { studentIds: updatedStudentIds });
+            });
+        }
+        
+        // If the user is a teacher, handle related data
+        if (selectedUser.role === 'teacher') {
+            // Unassign teacher from classes
+            const classesRef = collection(firestore, 'classes');
+            const classesQuery = query(classesRef, where('teacherIds', 'array-contains', userId));
+            const classesSnapshot = await getDocs(classesQuery);
+            classesSnapshot.forEach(classDoc => {
+                const classData = classDoc.data() as Class;
+                const updatedTeacherIds = classData.teacherIds.filter(id => id !== userId);
+                batch.update(classDoc.ref, { teacherIds: updatedTeacherIds });
             });
 
-            try {
-                await batch.commit();
-                toast({
-                    title: 'Étudiant désinscrit',
-                    description: `${getDisplayName(selectedUser)} a été retiré de toutes ses classes.`,
-                });
-            } catch (error) {
-                 toast({
-                    variant: 'destructive',
-                    title: 'Erreur de mise à jour',
-                    description: `La mise à jour des classes a échoué.`,
-                });
-                // Stop if we can't update classes
-                return;
-            }
+            // Unassign teacher from subjects
+            const subjectsRef = collection(firestore, 'subjects');
+            const subjectsQuery = query(subjectsRef, where('teacherId', '==', userId));
+            const subjectsSnapshot = await getDocs(subjectsQuery);
+             subjectsSnapshot.forEach(subjectDoc => {
+                batch.update(subjectDoc.ref, { teacherId: '' });
+            });
+
+            // Delete courses created by the teacher
+            const coursesRef = collection(firestore, 'courses');
+            const coursesQuery = query(coursesRef, where('teacherId', '==', userId));
+            const coursesSnapshot = await getDocs(coursesQuery);
+            coursesSnapshot.forEach(courseDoc => {
+                batch.delete(courseDoc.ref);
+            });
+
+            // Delete schedule events for the teacher
+            const scheduleRef = collection(firestore, 'schedule');
+            const scheduleQuery = query(scheduleRef, where('teacherId', '==', userId));
+            const scheduleSnapshot = await getDocs(scheduleQuery);
+            scheduleSnapshot.forEach(eventDoc => {
+                batch.delete(eventDoc.ref);
+            });
         }
 
         // Delete the user document itself
-        await deleteDoc(userDocRef);
+        batch.delete(userDocRef);
 
-        // NOTE: In a real app, you would also need to delete the user from Firebase Auth
-        // which is a privileged operation typically done on a server.
-        toast({
-            variant: 'destructive',
-            title: 'Utilisateur supprimé',
-            description: `Le profil Firestore de ${getDisplayName(selectedUser)} a été supprimé.`,
-        });
+        try {
+            await batch.commit();
+            // NOTE: In a real app, you would also need to delete the user from Firebase Auth
+            // which is a privileged operation typically done on a server.
+            toast({
+                variant: 'destructive',
+                title: 'Utilisateur et données associées supprimés',
+                description: `Le profil de ${getDisplayName(selectedUser)} et ses données liées ont été supprimés.`,
+            });
+        } catch (error) {
+            console.error("Failed to delete user and related data:", error);
+            toast({
+                variant: 'destructive',
+                title: 'Erreur de suppression',
+                description: `La suppression a échoué.`,
+            });
+        }
 
         setIsDeleteDialogOpen(false);
         setSelectedUser(null);
