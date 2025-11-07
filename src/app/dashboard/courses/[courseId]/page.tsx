@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Course,
@@ -9,11 +9,13 @@ import {
 } from '@/lib/placeholder-data';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Paperclip, Video, Link as LinkIcon, ChevronRight, ArrowLeft } from 'lucide-react';
-import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useFirestore, useUser } from '@/firebase';
+import { doc, onSnapshot, DocumentData } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
-import { notFound, useParams } from 'next/navigation';
+import { notFound, useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+
+type WithId<T> = T & { id: string };
 
 const ResourceIcon = ({ type }: { type: Resource['type'] }) => {
   switch (type) {
@@ -30,15 +32,41 @@ const ResourceIcon = ({ type }: { type: Resource['type'] }) => {
 
 function CourseDetailContent({ courseId }: { courseId: string }) {
     const firestore = useFirestore();
-    const { user } = useUser();
-    
-    const courseDocRef = useMemoFirebase(() => {
-        return doc(firestore, 'courses', courseId);
-    }, [firestore, courseId]);
+    const { user, isUserLoading } = useUser();
+    const [course, setCourse] = useState<WithId<Course> | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const router = useRouter();
 
-    const { data: course, isLoading: isLoadingCourse } = useDoc<Course>(courseDocRef);
+    useEffect(() => {
+        if (!user || !firestore || !courseId) {
+            if (!isUserLoading && !user) {
+                router.push('/login');
+            }
+            return;
+        }
 
-    if (isLoadingCourse) {
+        setIsLoading(true);
+        const courseDocRef = doc(firestore, 'courses', courseId);
+
+        const unsubscribe = onSnapshot(courseDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+                setCourse({ ...(docSnap.data() as Course), id: docSnap.id });
+                setError(null);
+            } else {
+                setError("Le cours demandé n'a pas été trouvé.");
+            }
+            setIsLoading(false);
+        }, (err) => {
+            console.error("Erreur de récupération Firestore:", err);
+            setError("Vous n'avez pas les permissions pour voir ce cours, ou une erreur est survenue.");
+            setIsLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [firestore, courseId, user, isUserLoading, router]);
+
+    if (isLoading || isUserLoading) {
         return (
             <div>
                 <Skeleton className="h-9 w-40 mb-6" />
@@ -61,6 +89,21 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
                 </Card>
             </div>
         );
+    }
+    
+    if (error) {
+        return (
+             <div className="text-center py-10">
+                <h2 className="text-2xl font-bold text-destructive">Erreur</h2>
+                <p className="text-muted-foreground mt-2">{error}</p>
+                 <Button asChild variant="outline" size="sm" className="mt-6">
+                    <Link href="/dashboard/student/courses">
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Retour à mes cours
+                    </Link>
+                </Button>
+            </div>
+        )
     }
 
     if (!course) {
@@ -139,10 +182,8 @@ export default function CourseDetailPage() {
     )
   }
   
-  if (!user) {
-    // This case should be handled by the layout, but as a safeguard
-    return <p>Veuillez vous connecter pour voir ce cours.</p>
-  }
+  // This page is for students, but the old code could be accessed by teachers.
+  // The layout will redirect non-users, so we only need to gate access here if needed.
   
   return <CourseDetailContent courseId={courseId} />;
 }

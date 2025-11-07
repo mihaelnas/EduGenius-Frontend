@@ -1,28 +1,63 @@
-
 'use client';
 
-import React from 'react';
-import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import React, { useState, useEffect } from 'react';
+import { useFirestore, useUser } from '@/firebase';
+import { doc, onSnapshot, DocumentData } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useParams, notFound } from 'next/navigation';
+import { useParams, notFound, useRouter } from 'next/navigation';
 import type { Course } from '@/lib/placeholder-data';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
+type WithId<T> = T & { id: string };
+
 function CourseDetailContent({ courseId }: { courseId: string }) {
     const firestore = useFirestore();
-    
-    const courseDocRef = useMemoFirebase(() => {
-        if (!firestore) return null;
-        return doc(firestore, 'courses', courseId);
-    }, [firestore, courseId]);
+    const { user, isUserLoading } = useUser();
+    const [course, setCourse] = useState<WithId<Course> | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const router = useRouter();
 
-    const { data: course, isLoading } = useDoc<Course>(courseDocRef);
+    useEffect(() => {
+        if (!user || !firestore || !courseId) {
+            // Wait for user and firestore to be available
+            if (!isUserLoading && !user) {
+                router.push('/login');
+            }
+            return;
+        }
 
-    if (isLoading) {
+        setIsLoading(true);
+        const courseDocRef = doc(firestore, 'courses', courseId);
+
+        const unsubscribe = onSnapshot(courseDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data() as Course;
+                if (data.teacherId !== user.uid) {
+                     setError("Vous n'avez pas la permission de voir ce cours.");
+                } else {
+                    setCourse({ ...data, id: docSnap.id });
+                    setError(null);
+                }
+            } else {
+                setError("Le cours demandé n'a pas été trouvé.");
+            }
+            setIsLoading(false);
+        }, (err) => {
+            console.error("Erreur de récupération Firestore:", err);
+            setError("Une erreur est survenue lors du chargement du cours.");
+            setIsLoading(false);
+        });
+
+        // Cleanup subscription on unmount
+        return () => unsubscribe();
+
+    }, [firestore, courseId, user, isUserLoading, router]);
+
+    if (isLoading || isUserLoading) {
         return (
             <div>
                 <Skeleton className="h-9 w-40 mb-6" />
@@ -39,10 +74,27 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
             </div>
         );
     }
+    
+    if (error) {
+        // Instead of 404, show an error message.
+        return (
+             <div className="text-center py-10">
+                <h2 className="text-2xl font-bold text-destructive">Erreur</h2>
+                <p className="text-muted-foreground mt-2">{error}</p>
+                 <Button asChild variant="outline" size="sm" className="mt-6">
+                    <Link href="/dashboard/teacher/courses">
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Retour à mes cours
+                    </Link>
+                </Button>
+            </div>
+        )
+    }
 
     if (!course) {
+        // This case will be hit if the document does not exist after loading.
         notFound();
-        return null; 
+        return null;
     }
 
     return (
@@ -73,7 +125,6 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
         </div>
     );
 }
-
 
 export default function TeacherCourseDetailPage() {
   const params = useParams();
