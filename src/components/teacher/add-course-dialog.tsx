@@ -9,11 +9,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
-import { Course, Resource } from '@/lib/placeholder-data';
+import { Course } from '@/lib/placeholder-data';
 import { PlusCircle, Trash2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { doc, collection } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 
 const resourceSchema = z.object({
   id: z.string().optional(),
@@ -34,10 +34,14 @@ type AddCourseDialogProps = {
     isOpen: boolean;
     setIsOpen: (isOpen: boolean) => void;
     onCourseAdded: (newCourse: Course) => Promise<void>;
+    subjectId: string;
+    subjectName: string;
 }
 
-export function AddCourseDialog({ isOpen, setIsOpen, onCourseAdded }: AddCourseDialogProps) {
+export function AddCourseDialog({ isOpen, setIsOpen, onCourseAdded, subjectId, subjectName }: AddCourseDialogProps) {
   const firestore = useFirestore();
+  const { user } = useUser();
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -53,15 +57,15 @@ export function AddCourseDialog({ isOpen, setIsOpen, onCourseAdded }: AddCourseD
   });
   
   async function onSubmit(values: FormValues) {
-    // Generate a new document reference with a unique ID client-side
+    if (!user) return;
     const newCourseRef = doc(collection(firestore, 'courses'));
 
     const coursePayload: Course = {
-      id: newCourseRef.id, // Use the generated ID
+      id: newCourseRef.id,
       ...values,
-      subjectId: '', // These will be set by the parent component
-      subjectName: '',
-      teacherId: '',
+      subjectId: subjectId,
+      subjectName: subjectName,
+      teacherId: user.uid,
       createdAt: new Date().toISOString(),
       resources: values.resources.map(r => ({
         ...r,
@@ -70,7 +74,7 @@ export function AddCourseDialog({ isOpen, setIsOpen, onCourseAdded }: AddCourseD
       }))
     };
 
-    await onCourseAdded(coursePayload); // Pass the full course object with the ID
+    await onCourseAdded(coursePayload);
     setIsOpen(false);
     form.reset();
   }
@@ -89,7 +93,7 @@ export function AddCourseDialog({ isOpen, setIsOpen, onCourseAdded }: AddCourseD
         <DialogHeader>
           <DialogTitle>Ajouter un nouveau cours</DialogTitle>
           <DialogDescription>
-            Remplissez les informations ci-dessous pour créer un nouveau cours.
+            Remplissez les informations ci-dessous pour créer un nouveau cours pour la matière "{subjectName}".
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>

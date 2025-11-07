@@ -78,21 +78,14 @@ function SubjectCourses({ subject }: { subject: Subject }) {
       toast({ variant: 'destructive', title: 'Erreur', description: 'Utilisateur non authentifié.' });
       return;
     }
-
-    const finalPayload: Course = {
-      ...newCoursePayload,
-      subjectId: subject.id,
-      subjectName: subject.name,
-      teacherId: user.uid,
-    };
     
-    const courseDocRef = doc(firestore, 'courses', finalPayload.id);
+    const courseDocRef = doc(firestore, 'courses', newCoursePayload.id);
 
     try {
-      await setDoc(courseDocRef, finalPayload);
+      await setDoc(courseDocRef, newCoursePayload);
       toast({
         title: 'Cours ajouté',
-        description: `Le cours "${finalPayload.title}" a été créé avec succès.`,
+        description: `Le cours "${newCoursePayload.title}" a été créé avec succès.`,
       });
     } catch (error) {
       console.error("Failed to add course:", error);
@@ -106,9 +99,8 @@ function SubjectCourses({ subject }: { subject: Subject }) {
 
 
   const handleUpdateCourse = async (updatedCourse: Course) => {
-    const { id, ...courseData } = updatedCourse;
-    const courseDocRef = doc(firestore, 'courses', id);
-    await updateDoc(courseDocRef, courseData);
+    const courseDocRef = doc(firestore, 'courses', updatedCourse.id);
+    await updateDoc(courseDocRef, updatedCourse);
     toast({
       title: 'Cours modifié',
       description: `Le cours "${updatedCourse.title}" a été mis à jour.`,
@@ -180,6 +172,8 @@ function SubjectCourses({ subject }: { subject: Subject }) {
         isOpen={isAddCourseDialogOpen}
         setIsOpen={setIsAddCourseDialogOpen}
         onCourseAdded={handleAddCourse}
+        subjectId={subject.id}
+        subjectName={subject.name}
       />
 
       {selectedCourse && (
