@@ -4,15 +4,23 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AppUser, Class, Subject } from '@/lib/placeholder-data';
-import { Users, School, Book, BarChart3, Activity } from 'lucide-react';
+import { Users, School, Book, BarChart3, Activity, UserPlus, FolderPlus, BookPlus } from 'lucide-react';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '../ui/chart';
+import { formatDistanceToNow } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 type AdminDashboardProps = {
     userName: string | null;
     users: AppUser[];
     classes: Class[];
     subjects: Subject[];
+}
+
+type ActivityItem = {
+    type: 'user' | 'class' | 'subject';
+    data: AppUser | Class | Subject;
+    createdAt: Date;
 }
 
 const chartConfig = {
@@ -42,6 +50,27 @@ export function AdminDashboard({ userName, users, classes, subjects }: AdminDash
         { title: "Total Matières", value: subjects.length, icon: <Book className="h-4 w-4 text-muted-foreground" />, description: "Stable" },
         { title: "Enseignants Actifs", value: users.filter(u => u.role === 'teacher' && u.status === 'active').length, icon: <Users className="h-4 w-4 text-muted-foreground" />, description: "" },
     ], [users, classes, subjects]);
+
+    const recentActivity = React.useMemo(() => {
+        const allActivity: ActivityItem[] = [
+            ...users.map(u => ({ type: 'user' as const, data: u, createdAt: new Date(u.createdAt) })),
+            ...classes.map(c => ({ type: 'class' as const, data: c, createdAt: new Date(c.createdAt) })),
+            ...subjects.map(s => ({ type: 'subject' as const, data: s, createdAt: new Date(s.createdAt) }))
+        ];
+        
+        return allActivity
+                .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+                .slice(0, 5);
+    }, [users, classes, subjects]);
+
+    const ActivityIcon = ({ type }: { type: ActivityItem['type']}) => {
+        switch(type) {
+            case 'user': return <UserPlus className="h-5 w-5 text-primary" />;
+            case 'class': return <FolderPlus className="h-5 w-5 text-primary" />;
+            case 'subject': return <BookPlus className="h-5 w-5 text-primary" />;
+            default: return <Activity className="h-5 w-5 text-primary" />;
+        }
+    }
 
     return (
         <>
@@ -95,10 +124,25 @@ export function AdminDashboard({ userName, users, classes, subjects }: AdminDash
                         <CardDescription>Derniers événements sur la plateforme.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="space-y-4 text-sm text-muted-foreground">
-                            <p>• Nouvelle classe "Master 2 - GID" ajoutée.</p>
-                            <p>• 5 nouveaux étudiants inscrits.</p>
-                            <p>• Cours "Introduction à l'IA" publié.</p>
+                       <div className="space-y-4">
+                            {recentActivity.map((item) => (
+                                <div key={`${item.type}-${item.data.id}`} className="flex items-start gap-4">
+                                    <ActivityIcon type={item.type} />
+                                    <div className="text-sm">
+                                        <p className="text-foreground">
+                                           {item.type === 'user' && `Nouvel utilisateur : ${(item.data as AppUser).firstName} ${(item.data as AppUser).lastName}`}
+                                           {item.type === 'class' && `Nouvelle classe : ${(item.data as Class).name}`}
+                                           {item.type === 'subject' && `Nouvelle matière : ${(item.data as Subject).name}`}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                           {formatDistanceToNow(item.createdAt, { addSuffix: true, locale: fr })}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                             {recentActivity.length === 0 && (
+                                <p className="text-sm text-center text-muted-foreground py-4">Aucune activité récente.</p>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
