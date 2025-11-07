@@ -107,12 +107,20 @@ export default function RegisterPage() {
       });
       router.push('/login');
     } catch (error: any) {
-      console.error("Registration Error:", error);
-      toast({
-        variant: 'destructive',
-        title: 'Échec de l\'inscription',
-        description: error.message || 'Une erreur est survenue.',
-      });
+      if (error.code === 'auth/email-already-in-use') {
+        toast({
+            variant: 'destructive',
+            title: 'Échec de l\'inscription',
+            description: 'Cette adresse e-mail est déjà utilisée. Veuillez vous connecter.',
+        });
+      } else {
+        console.error("Registration Error:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Échec de l\'inscription',
+            description: error.message || 'Une erreur est survenue.',
+        });
+      }
     }
   }
 
