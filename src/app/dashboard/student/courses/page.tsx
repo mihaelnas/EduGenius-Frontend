@@ -103,7 +103,7 @@ function SubjectAccordionItem({ subject }: { subject: Subject }) {
                     </div>
                 ) : courses && courses.length > 0 ? (
                     courses.map(course => {
-                      const href = `/dashboard/student/courses/${subject.id}/${course.id}`;
+                      const href = `/dashboard/courses/${course.id}`;
                       return (
                         <Link
                           key={course.id}
