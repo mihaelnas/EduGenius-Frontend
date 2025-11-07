@@ -120,20 +120,17 @@ export default function DashboardPage() {
       const subjectsData = subjectsSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Subject));
       setStudentSubjects(subjectsData);
       
-      // 3. Find recent courses for those subjects
+      // 3. Find recent courses FOR THOSE SUBJECTS (efficient query)
       if (subjectsData.length > 0) {
-        const studentSubjectIds = new Set(subjectsData.map(s => s.id));
+        const studentSubjectIds = subjectsData.map(s => s.id);
         const coursesQuery = query(
             collection(firestore, 'courses'),
+            where('subjectId', 'in', studentSubjectIds),
             orderBy('createdAt', 'desc'),
-            limit(10)
+            limit(3)
         );
         const coursesSnapshot = await getDocs(coursesQuery);
-        const allRecentCourses = coursesSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Course));
-        
-        // Filter client-side to avoid complex index
-        const studentRecentCourses = allRecentCourses.filter(course => studentSubjectIds.has(course.subjectId)).slice(0, 3);
-        
+        const studentRecentCourses = coursesSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Course));
         setRecentCourses(studentRecentCourses);
       } else {
         setRecentCourses([]);
