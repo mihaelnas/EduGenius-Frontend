@@ -16,13 +16,14 @@ import {
 import { LogIn, LogOut, Settings, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser, useFirestore, useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import type { AppUser } from '@/lib/placeholder-data';
 import { doc, getDoc } from 'firebase/firestore';
 
 export function UserNav() {
   const router = useRouter();
+  const auth = useAuth();
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const [userProfile, setUserProfile] = React.useState<AppUser | null>(null);
@@ -42,10 +43,8 @@ export function UserNav() {
 
   const handleLogout = async () => {
     try {
-      if (user) {
-        await signOut(user.auth);
-        router.push('/login');
-      }
+      await signOut(auth);
+      router.push('/login');
     } catch (error) {
       console.error('Logout Error:', error);
     }
