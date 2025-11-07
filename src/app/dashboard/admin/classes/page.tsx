@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -16,7 +17,7 @@ import { AssignTeacherDialog } from '@/components/admin/assign-teacher-dialog';
 import { ManageStudentsDialog } from '@/components/admin/manage-students-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, doc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, addDoc, updateDoc, deleteDoc, writeBatch, query, where, getDocs } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdminClassesPage() {
@@ -90,15 +91,31 @@ export default function AdminClassesPage() {
 
   const confirmDelete = async () => {
     if (selectedClass) {
-      const classDocRef = doc(firestore, 'classes', selectedClass.id);
-      await deleteDoc(classDocRef);
-      toast({
-        variant: 'destructive',
-        title: 'Classe supprimée',
-        description: `La classe ${selectedClass.name} a été supprimée.`,
-      });
-      setIsDeleteDialogOpen(false);
-      setSelectedClass(null);
+        const batch = writeBatch(firestore);
+
+        // 1. Find and delete related schedule events
+        const scheduleRef = collection(firestore, 'schedule');
+        const scheduleQuery = query(scheduleRef, where('class', '==', selectedClass.name));
+        const scheduleSnapshot = await getDocs(scheduleQuery);
+        scheduleSnapshot.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+
+        // 2. Delete the class itself
+        const classDocRef = doc(firestore, 'classes', selectedClass.id);
+        batch.delete(classDocRef);
+        
+        // Commit all operations
+        await batch.commit();
+
+        toast({
+            variant: 'destructive',
+            title: 'Classe et données associées supprimées',
+            description: `La classe "${selectedClass.name}" ainsi que ses événements d'emploi du temps ont été supprimés.`,
+        });
+
+        setIsDeleteDialogOpen(false);
+        setSelectedClass(null);
     }
   };
   
