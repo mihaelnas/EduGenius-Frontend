@@ -95,9 +95,17 @@ export function EditUserDialog({ isOpen, setIsOpen, user, onUserUpdated }: EditU
   });
   
   function onSubmit(values: FormValues) {
+    const dataToSend: any = {
+      ...values,
+    };
+    
+    if (dataToSend.photo === '') {
+      delete dataToSend.photo;
+    }
+  
     const finalValues: AppUser = {
         ...user,
-        ...values,
+        ...dataToSend,
     };
     onUserUpdated(finalValues);
     setIsOpen(false);
