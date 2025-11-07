@@ -196,22 +196,12 @@ export function AddUserDialog({ isOpen, setIsOpen, onUserAdded }: AddUserDialogP
     }
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(
+      const { user: newAuthUser } = await createUserWithEmailAndPassword(
         auth,
         values.email,
         values.password
       );
-      const newUser = userCredential.user;
-
-      if (auth.currentUser?.uid === newUser.uid) {
-         await signOut(auth);
-      }
       
-      await updateProfile(newUser, {
-        displayName: `${values.firstName} ${values.lastName}`,
-        photoURL: values.photo || null,
-      });
-
       const { password, ...userData } = values;
       const userProfile: Omit<AppUser, 'id'> = {
         ...userData,
@@ -223,15 +213,19 @@ export function AddUserDialog({ isOpen, setIsOpen, onUserAdded }: AddUserDialogP
         delete userProfile.photo;
       }
 
-      const userDocRef = doc(firestore, 'users', newUser.uid);
+      const userDocRef = doc(firestore, 'users', newAuthUser.uid);
       await setDoc(userDocRef, userProfile);
+      
+      if (auth.currentUser?.uid === newAuthUser.uid) {
+         await signOut(auth);
+      }
 
       toast({
         title: 'Utilisateur créé',
         description: `Le compte pour ${values.firstName} ${values.lastName} a été créé.`,
       });
 
-      onUserAdded({ ...userProfile, id: newUser.uid });
+      onUserAdded({ ...userProfile, id: newAuthUser.uid });
 
       setIsOpen(false);
       form.reset(initialValues);
@@ -343,7 +337,7 @@ export function AddUserDialog({ isOpen, setIsOpen, onUserAdded }: AddUserDialogP
 
                         {role === 'teacher' && (
                             <>
-                                <FormField control={form.control} name="emailPro" render={({ field }) => ( <FormItem><FormLabel>Email Professionnel</FormLabel><FormControl><Input placeholder="nom@univ.edu" type="email" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                <FormField control={form.control} name="emailPro" render={({ field }) => ( <FormItem><FormLabel>Email Professionnel</FormLabel><FormControl><Input placeholder="nom@univ.edu" type="email" {...field} /></FormControl><FormMessage /></FormMessage>)} />
                                 <FormField control={form.control} name="genre" render={({ field }) => ( <FormItem><FormLabel>Genre</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Sélectionner..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="Homme">Homme</SelectItem><SelectItem value="Femme">Femme</SelectItem></SelectContent></Select><FormMessage /></FormMessage>)} />
                                 <FormField control={form.control} name="telephone" render={({ field }) => ( <FormItem><FormLabel>Téléphone</FormLabel><FormControl><Input placeholder="0123456789" {...field} /></FormControl><FormMessage /></FormItem> )} />
                                 <FormField control={form.control} name="adresse" render={({ field }) => ( <FormItem><FormLabel>Adresse</FormLabel><FormControl><Input placeholder="123 Rue de Paris" {...field} /></FormControl><FormMessage /></FormItem> )} />
