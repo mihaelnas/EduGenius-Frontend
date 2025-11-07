@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -148,7 +149,11 @@ export default function TeacherSchedulePage() {
                   className="rounded-md"
                   locale={fr}
                   pagedNavigation
-                  disabled={(d) => d < new Date('1900-01-01')}
+                  disabled={(d) => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    return d < today;
+                  }}
                 />
               ) : (
                 <div className="p-3">
