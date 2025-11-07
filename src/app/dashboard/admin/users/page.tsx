@@ -14,7 +14,7 @@ import { AddUserDialog, AddUserFormValues } from '@/components/admin/add-user-di
 import { EditUserDialog } from '@/components/admin/edit-user-dialog';
 import { DeleteConfirmationDialog } from '@/components/admin/delete-confirmation-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { useCollection, useFirestore, useMemoFirebase, useAuth, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useAuth } from '@/firebase';
 import { collection, doc, setDoc, deleteDoc, getDocs, writeBatch, updateDoc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ViewDetailsButton } from '@/components/admin/view-details-button';
@@ -70,15 +70,7 @@ export default function AdminUsersPage() {
       
       const userDocRef = doc(firestore, 'users', newUser.uid);
       
-      await setDoc(userDocRef, userProfile).catch(error => {
-        // This will now properly catch and display permission errors
-        const permissionError = new FirestorePermissionError({
-          path: userDocRef.path,
-          operation: 'create',
-          requestResourceData: userProfile,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-      });
+      await setDoc(userDocRef, userProfile);
       
       toast({
         title: `Utilisateur ${getDisplayName(values)} ajouté.`,

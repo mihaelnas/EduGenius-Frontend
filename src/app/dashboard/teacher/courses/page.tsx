@@ -73,34 +73,50 @@ function SubjectCourses({ subject }: { subject: Subject }) {
     }
   };
 
-  const handleAddCourse = async (newCoursePayload: Course) => {
+  const handleAddCourse = async (newCoursePayload: Omit<Course, 'id' | 'teacherId' | 'createdAt'>) => {
     if (!user) {
       toast({ variant: 'destructive', title: 'Erreur', description: 'Utilisateur non authentifié.' });
       return;
     }
     
-    const courseDocRef = doc(firestore, 'courses', newCoursePayload.id);
+    // Generate a new document reference with a unique ID
+    const newCourseRef = doc(collection(firestore, 'courses'));
+
+    const finalPayload: Course = {
+        id: newCourseRef.id, // Use the generated ID
+        ...newCoursePayload,
+        teacherId: user.uid,
+        createdAt: new Date().toISOString(),
+    };
 
     try {
-      await setDoc(courseDocRef, newCoursePayload);
+      // Use setDoc with the new ref to create the document
+      await setDoc(newCourseRef, finalPayload);
       toast({
         title: 'Cours ajouté',
-        description: `Le cours "${newCoursePayload.title}" a été créé avec succès.`,
+        description: `Le cours "${finalPayload.title}" a été créé avec succès.`,
       });
     } catch (error) {
       console.error("Failed to add course:", error);
       toast({
         variant: 'destructive',
         title: 'Échec de l\'ajout du cours',
-        description: "La création du cours a échoué. Veuillez vérifier vos permissions ou contacter un administrateur.",
+        description: "La création du cours a échoué. Veuillez réessayer.",
       });
     }
   };
 
 
   const handleUpdateCourse = async (updatedCourse: Course) => {
+    // Ensure the ID is present, which it should be from the selectedCourse
+    if (!updatedCourse.id) {
+        toast({ variant: "destructive", title: "Erreur", description: "ID de cours manquant." });
+        return;
+    }
     const courseDocRef = doc(firestore, 'courses', updatedCourse.id);
-    await updateDoc(courseDocRef, updatedCourse);
+    // The updatedCourse object from the form already contains all fields.
+    // We can pass it directly to updateDoc.
+    await updateDoc(courseDocRef, { ...updatedCourse });
     toast({
       title: 'Cours modifié',
       description: `Le cours "${updatedCourse.title}" a été mis à jour.`,

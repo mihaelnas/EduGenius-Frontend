@@ -12,8 +12,6 @@ import { z } from 'zod';
 import { Course } from '@/lib/placeholder-data';
 import { PlusCircle, Trash2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { doc, collection } from 'firebase/firestore';
-import { useFirestore, useUser } from '@/firebase';
 
 const resourceSchema = z.object({
   id: z.string().optional(),
@@ -33,14 +31,12 @@ type FormValues = z.infer<typeof formSchema>;
 type AddCourseDialogProps = {
     isOpen: boolean;
     setIsOpen: (isOpen: boolean) => void;
-    onCourseAdded: (newCourse: Course) => Promise<void>;
+    onCourseAdded: (newCourse: Omit<Course, 'id' | 'teacherId' | 'createdAt'>) => Promise<void>;
     subjectId: string;
     subjectName: string;
 }
 
 export function AddCourseDialog({ isOpen, setIsOpen, onCourseAdded, subjectId, subjectName }: AddCourseDialogProps) {
-  const firestore = useFirestore();
-  const { user } = useUser();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -57,16 +53,10 @@ export function AddCourseDialog({ isOpen, setIsOpen, onCourseAdded, subjectId, s
   });
   
   async function onSubmit(values: FormValues) {
-    if (!user) return;
-    const newCourseRef = doc(collection(firestore, 'courses'));
-
-    const coursePayload: Course = {
-      id: newCourseRef.id,
+    const coursePayload: Omit<Course, 'id' | 'teacherId' | 'createdAt'> = {
       ...values,
       subjectId: subjectId,
       subjectName: subjectName,
-      teacherId: user.uid,
-      createdAt: new Date().toISOString(),
       resources: values.resources.map(r => ({
         ...r,
         id: r.id || `res_${Date.now()}_${Math.random()}`,
