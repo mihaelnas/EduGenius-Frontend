@@ -5,13 +5,27 @@ import { useFirestore, useUser } from '@/firebase';
 import { doc, onSnapshot, DocumentData } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useParams, notFound, useRouter } from 'next/navigation';
-import type { Course } from '@/lib/placeholder-data';
-import { ArrowLeft } from 'lucide-react';
+import type { Course, Resource } from '@/lib/placeholder-data';
+import { ArrowLeft, ChevronRight, Link as LinkIcon, Paperclip, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 type WithId<T> = T & { id: string };
+
+const ResourceIcon = ({ type }: { type: Resource['type'] }) => {
+  switch (type) {
+    case 'pdf':
+      return <Paperclip className="h-5 w-5 text-primary" />;
+    case 'video':
+      return <Video className="h-5 w-5 text-primary" />;
+    case 'link':
+      return <LinkIcon className="h-5 w-5 text-primary" />;
+    default:
+      return null;
+  }
+};
+
 
 function CourseDetailContent({ courseId }: { courseId: string }) {
     const firestore = useFirestore();
@@ -76,7 +90,6 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
     }
     
     if (error) {
-        // Instead of 404, show an error message.
         return (
              <div className="text-center py-10">
                 <h2 className="text-2xl font-bold text-destructive">Erreur</h2>
@@ -92,7 +105,6 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
     }
 
     if (!course) {
-        // This case will be hit if the document does not exist after loading.
         notFound();
         return null;
     }
@@ -120,6 +132,28 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
                     <div className="prose dark:prose-invert max-w-none">
                         <p>{course.content}</p>
                     </div>
+                     {course.resources && course.resources.length > 0 && (
+                    <div className="mt-8">
+                    <h3 className="text-xl font-semibold mb-4 font-headline">Ressources du cours</h3>
+                    <div className="space-y-3">
+                        {course.resources.map((resource, index) => (
+                        <a
+                            key={resource.id || index}
+                            href={resource.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-between gap-3 p-4 border rounded-lg hover:bg-muted transition-colors"
+                        >
+                            <div className="flex items-center gap-4">
+                                <ResourceIcon type={resource.type} />
+                                <span className="font-medium">{resource.title}</span>
+                            </div>
+                            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                        </a>
+                        ))}
+                    </div>
+                    </div>
+                )}
                 </CardContent>
             </Card>
         </div>

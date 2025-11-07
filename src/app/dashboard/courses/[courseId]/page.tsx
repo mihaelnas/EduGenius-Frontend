@@ -110,7 +110,7 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
         notFound();
         return null; 
     }
-
+    
     const breadcrumbBase = user?.uid === course.teacherId 
     ? { href: '/dashboard/teacher/courses', label: 'Mes Cours' }
     : { href: '/dashboard/student/courses', label: 'Mes Cours' };
@@ -181,9 +181,6 @@ export default function CourseDetailPage() {
       </div>
     )
   }
-  
-  // This page is for students, but the old code could be accessed by teachers.
-  // The layout will redirect non-users, so we only need to gate access here if needed.
   
   return <CourseDetailContent courseId={courseId} />;
 }
