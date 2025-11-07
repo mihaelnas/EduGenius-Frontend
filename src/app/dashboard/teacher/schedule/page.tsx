@@ -24,14 +24,14 @@ const statusVariant: { [key in ScheduleEvent['status']]: 'default' | 'secondary'
 };
 
 export default function TeacherSchedulePage() {
-  const [date, setDate] = React.useState<Date | undefined>(new Date());
+  const [date, setDate] = React.useState<Date | undefined>(undefined);
   const [isAddEventDialogOpen, setIsAddEventDialogOpen] = React.useState(false);
   const { user } = useUser();
   const firestore = useFirestore();
 
   React.useEffect(() => {
     const today = new Date();
-    today.setHours(0,0,0,0);
+    today.setHours(0, 0, 0, 0);
     setDate(today);
   }, []);
   
@@ -76,6 +76,13 @@ export default function TeacherSchedulePage() {
   };
 
   const isLoading = isLoadingSchedule || isLoadingUsers || isLoadingClasses || isLoadingSubjects;
+
+  const handleDateSelect = (selectedDate: Date | undefined) => {
+    setDate(selectedDate);
+    if (selectedDate) {
+      setIsAddEventDialogOpen(true);
+    }
+  };
 
   return (
     <>
@@ -147,7 +154,7 @@ export default function TeacherSchedulePage() {
                 <Calendar
                   mode="single"
                   selected={date}
-                  onSelect={setDate}
+                  onSelect={handleDateSelect}
                   className="rounded-md"
                   locale={fr}
                   pagedNavigation
@@ -172,6 +179,7 @@ export default function TeacherSchedulePage() {
         onEventAdded={handleEventAdded}
         teacherClasses={teacherClasses || []}
         teacherSubjects={teacherSubjects || []}
+        selectedDate={date}
       />
     </>
   );

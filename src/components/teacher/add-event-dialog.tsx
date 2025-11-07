@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -12,6 +13,7 @@ import { z } from 'zod';
 import { ScheduleEvent, Class, Subject, getDisplayName } from '@/lib/placeholder-data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useUser } from '@/firebase';
+import { format } from 'date-fns';
 
 const formSchema = z.object({
   date: z.string().min(1, 'La date est requise.'),
@@ -32,9 +34,10 @@ type AddEventDialogProps = {
     onEventAdded: (newEvent: FormValues) => void;
     teacherClasses: Class[];
     teacherSubjects: Subject[];
+    selectedDate?: Date;
 }
 
-export function AddEventDialog({ isOpen, setIsOpen, onEventAdded, teacherClasses, teacherSubjects }: AddEventDialogProps) {
+export function AddEventDialog({ isOpen, setIsOpen, onEventAdded, teacherClasses, teacherSubjects, selectedDate }: AddEventDialogProps) {
   const { toast } = useToast();
   const { user } = useUser();
 
@@ -53,6 +56,12 @@ export function AddEventDialog({ isOpen, setIsOpen, onEventAdded, teacherClasses
   });
 
   const eventType = form.watch('type');
+
+  React.useEffect(() => {
+    if (selectedDate && isOpen) {
+      form.setValue('date', format(selectedDate, 'yyyy-MM-dd'));
+    }
+  }, [selectedDate, isOpen, form]);
 
   function onSubmit(values: FormValues) {
     onEventAdded(values);
