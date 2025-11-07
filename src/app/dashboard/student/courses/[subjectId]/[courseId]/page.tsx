@@ -31,26 +31,18 @@ const ResourceIcon = ({ type }: { type: Resource['type'] }) => {
 export default function CourseDetailPage() {
   const params = useParams();
   const courseId = params.courseId as string;
-  const subjectId = params.subjectId as string; // Ajout pour le débogage
   const firestore = useFirestore();
-
-  console.log(`[CourseDetailPage] Rendu de la page avec les paramètres : courseId=${courseId}, subjectId=${subjectId}`);
 
   const courseDocRef = useMemoFirebase(() => {
     if (courseId) {
-      console.log(`[CourseDetailPage] Création de la référence Firestore pour : courses/${courseId}`);
       return doc(firestore, 'courses', courseId);
     }
-    console.log('[CourseDetailPage] courseId est manquant, impossible de créer la référence Firestore.');
     return null;
   }, [firestore, courseId]);
 
-  const { data: course, isLoading: isLoadingCourse, error: courseError } = useDoc<Course>(courseDocRef);
-
-  console.log('[CourseDetailPage] Résultat du hook useDoc :', { course, isLoadingCourse, courseError });
+  const { data: course, isLoading: isLoadingCourse } = useDoc<Course>(courseDocRef);
 
   if (isLoadingCourse) {
-    console.log('[CourseDetailPage] Affichage du squelette de chargement.');
     return (
         <div>
             <Skeleton className="h-6 w-1/2 mb-6" />
@@ -75,14 +67,11 @@ export default function CourseDetailPage() {
     );
   }
 
-  // Si le chargement est terminé et qu'il n'y a pas de cours, alors 404
   if (!isLoadingCourse && !course) {
-    console.error(`[CourseDetailPage] Erreur 404 déclenchée. isLoadingCourse: ${isLoadingCourse}, course:`, course);
     notFound();
-    return null; // notFound() interrompt le rendu, mais c'est une bonne pratique.
+    return null;
   }
   
-  // Cette vérification est maintenant sécurisée
   if (!course) return null;
 
 

@@ -20,6 +20,7 @@ export default function StudentCoursesPage() {
   React.useEffect(() => {
     async function fetchStudentSubjects() {
       if (isUserLoading || !user || !firestore) {
+        if (!isUserLoading) setIsLoading(false);
         return;
       }
       setIsLoading(true);
@@ -103,8 +104,7 @@ function SubjectAccordionItem({ subject }: { subject: Subject }) {
                     </div>
                 ) : courses && courses.length > 0 ? (
                     courses.map(course => {
-                      const href = `/dashboard/student/courses/${subject.id}/${course.id}`;
-                      console.log(`[StudentCoursesPage] Génération du lien pour le cours "${course.title}": ${href}`);
+                      const href = `/dashboard/student/courses/${course.id}`;
                       return (
                         <Link
                           key={course.id}
