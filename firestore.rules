@@ -18,6 +18,14 @@ service cloud.firestore {
     function isAdmin() {
       return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
+    
+    function isTeacherForEvent() {
+      return isSignedIn() && request.resource.data.teacherId == request.auth.uid;
+    }
+
+    function isExistingTeacherForEvent() {
+      return isSignedIn() && resource != null && resource.data.teacherId == request.auth.uid;
+    }
 
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
@@ -68,6 +76,13 @@ service cloud.firestore {
        allow create: if isAdmin();
        allow update: if false;
        allow delete: if isAdmin();
+    }
+
+    match /schedule/{eventId} {
+      allow get, list: if isSignedIn();
+      allow create: if isTeacherForEvent() || isAdmin();
+      allow update: if isExistingTeacherForEvent() || isAdmin();
+      allow delete: if isExistingTeacherForEvent() || isAdmin();
     }
   }
 }
