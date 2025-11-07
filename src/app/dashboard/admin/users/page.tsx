@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ViewDetailsButton } from '@/components/admin/view-details-button';
 
 export default function AdminUsersPage() {
   const [searchTerm, setSearchTerm] = React.useState('');
@@ -38,7 +39,7 @@ export default function AdminUsersPage() {
         createdAt: new Date().toISOString().split('T')[0],
     };
     if (!newUserData.photo) {
-        delete newUserData.photo;
+        delete (newUserData as Partial<AppUser>).photo;
     }
     
     addDocumentNonBlocking(usersCollectionRef, newUserData);
@@ -179,7 +180,7 @@ export default function AdminUsersPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuItem onClick={() => handleEdit(user)}>Modifier</DropdownMenuItem>
-                          <DropdownMenuItem>Voir les détails</DropdownMenuItem>
+                          <ViewDetailsButton userId={user.id} />
                           <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(user)}>Supprimer</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
