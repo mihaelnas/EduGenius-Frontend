@@ -120,6 +120,11 @@ export function AddUserDialog({ isOpen, setIsOpen, onUserAdded }: AddUserDialogP
     name: 'username',
   });
 
+  const matriculeValue = useWatch({
+      control: form.control,
+      name: 'matricule',
+  });
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const checkUsername = useCallback(
     debounce(async (username: string) => {
@@ -139,24 +144,54 @@ export function AddUserDialog({ isOpen, setIsOpen, onUserAdded }: AddUserDialogP
     }, 500),
     [firestore, form]
   );
+  
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const checkMatricule = useCallback(
+    debounce(async (matricule: string) => {
+      if (matricule) {
+        const usersRef = collection(firestore, 'users');
+        const q = query(usersRef, where('matricule', '==', matricule));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          form.setError('matricule', {
+            type: 'manual',
+            message: 'Ce numéro matricule est déjà utilisé.',
+          });
+        } else {
+          form.clearErrors('matricule');
+        }
+      }
+    }, 500),
+    [firestore, form]
+  );
 
   useEffect(() => {
     if (role === 'student') {
         checkUsername(usernameValue);
     }
   }, [usernameValue, role, checkUsername]);
+  
+  useEffect(() => {
+    if (role === 'student' && matriculeValue) {
+        checkMatricule(matriculeValue);
+    }
+  }, [matriculeValue, role, checkMatricule]);
 
 
   async function onSubmit(values: FormValues) {
     if (values.role === 'student') {
         const usersRef = collection(firestore, 'users');
-        const q = query(usersRef, where('username', '==', values.username));
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-            form.setError('username', {
-                type: 'manual',
-                message: "Ce nom d'utilisateur est déjà pris.",
-            });
+        const usernameQuery = query(usersRef, where('username', '==', values.username));
+        const usernameSnapshot = await getDocs(usernameQuery);
+        if (!usernameSnapshot.empty) {
+            form.setError('username', { type: 'manual', message: "Ce nom d'utilisateur est déjà pris." });
+            return;
+        }
+        
+        const matriculeQuery = query(usersRef, where('matricule', '==', values.matricule));
+        const matriculeSnapshot = await getDocs(matriculeQuery);
+        if (!matriculeSnapshot.empty) {
+            form.setError('matricule', { type: 'manual', message: "Ce numéro matricule est déjà utilisé." });
             return;
         }
     }
@@ -276,5 +311,3 @@ export function AddUserDialog({ isOpen, setIsOpen, onUserAdded }: AddUserDialogP
     </Dialog>
   );
 }
-
-    
