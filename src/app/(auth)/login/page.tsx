@@ -25,55 +25,48 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { users, getDisplayName, AppUser } from '@/lib/placeholder-data';
+import { useAuth } from '@/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 const formSchema = z.object({
-  login: z.string().min(1, { message: 'Ce champ est requis.' }),
+  email: z.string().email({ message: 'Veuillez entrer un email valide.' }),
   password: z.string().min(1, { message: 'Le mot de passe est requis.' }),
 });
 
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const auth = useAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      login: '',
+      email: '',
       password: '',
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // Mock login logic
-    const user = users.find(u => u.email === values.login || u.username === values.login);
-
-    if (!user) {
-        toast({
-            variant: 'destructive',
-            title: 'Échec de la connexion',
-            description: 'Identifiants incorrects. Veuillez réessayer.',
-        });
-        return;
-    }
-
-    toast({
-      title: 'Connexion réussie',
-      description: 'Redirection vers votre tableau de bord...',
-    });
-    
-    // Store role and other info in localStorage for demonstration purposes
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('userRole', user.role);
-      localStorage.setItem('userEmail', user.email);
-      // Use getDisplayName for any AppUser type, as it's designed for that.
-      localStorage.setItem('userName', getDisplayName(user));
-    }
-
-    // Redirect to dashboard after a short delay
-    setTimeout(() => {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+      await signInWithEmailAndPassword(auth, values.email, values.password);
+      toast({
+        title: 'Connexion réussie',
+        description: 'Redirection vers votre tableau de bord...',
+      });
       router.push('/dashboard');
-    }, 1000);
+    } catch (error: any) {
+      console.error('Login Error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Échec de la connexion',
+        description:
+          error.code === 'auth/user-not-found' ||
+          error.code === 'auth/wrong-password' ||
+          error.code === 'auth/invalid-credential'
+            ? 'Identifiants incorrects. Veuillez réessayer.'
+            : "Une erreur s'est produite. Veuillez réessayer.",
+      });
+    }
   }
 
   return (
@@ -89,12 +82,16 @@ export default function LoginPage() {
           <CardContent className="grid gap-4">
             <FormField
               control={form.control}
-              name="login"
+              name="email"
               render={({ field }) => (
                 <FormItem className="grid gap-2">
-                  <FormLabel>Email ou Nom d'utilisateur</FormLabel>
+                  <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="nom@exemple.com ou @votrepseudo" {...field} />
+                    <Input
+                      placeholder="nom@exemple.com"
+                      type="email"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

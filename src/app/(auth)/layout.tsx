@@ -1,6 +1,8 @@
 import { Logo } from '@/components/logo';
 import { placeholderImages } from '@/lib/placeholder-images';
 import Image from 'next/image';
+import { useUser } from '@/firebase';
+import { redirect } from 'next/navigation';
 
 export default function AuthLayout({
   children,

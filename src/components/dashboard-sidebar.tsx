@@ -11,29 +11,35 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/logo';
-import { adminNavLinks, teacherNavLinks, studentNavLinks, type NavLink } from '@/lib/nav-links';
-
-// Mock hook to get user role. In a real app, this would come from auth context.
-const useUserRole = () => {
-  const [role, setRole] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    // In a real app, you would get the role from an auth provider.
-    // For this demo, we'll get it from localStorage. This ensures it only runs on the client.
-    const storedRole = localStorage.getItem('userRole');
-    if (storedRole && ['admin', 'teacher', 'student'].includes(storedRole)) {
-      setRole(storedRole);
-    } else {
-      setRole('student'); // Default to student if nothing is found or role is invalid
-    }
-  }, []);
-
-  return role;
-};
+import {
+  adminNavLinks,
+  teacherNavLinks,
+  studentNavLinks,
+  type NavLink,
+} from '@/lib/nav-links';
+import { useUser, useFirestore } from '@/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 export function DashboardSidebar() {
   const pathname = usePathname();
-  const role = useUserRole();
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+  const [role, setRole] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (user) {
+      const userDocRef = doc(firestore, 'users', user.uid);
+      const unsubscribe = getDoc(userDocRef).then((docSnap) => {
+        if (docSnap.exists()) {
+          setRole(docSnap.data().role);
+        } else {
+          setRole('student'); // Default role
+        }
+      });
+    } else if (!isUserLoading) {
+       setRole('student'); // Default for non-logged-in users for demo
+    }
+  }, [user, firestore, isUserLoading]);
 
   let navLinks: NavLink[] = [];
   switch (role) {
@@ -49,8 +55,7 @@ export function DashboardSidebar() {
       break;
   }
 
-  // Render a loading state or nothing while the role is being determined
-  if (!role) {
+  if (isUserLoading || !role) {
     return (
       <>
         <SidebarHeader>
@@ -62,7 +67,7 @@ export function DashboardSidebar() {
           {/* You can add a skeleton loader here if you want */}
         </SidebarContent>
       </>
-    )
+    );
   }
 
   return (

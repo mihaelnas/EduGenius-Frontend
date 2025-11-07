@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -24,28 +25,46 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth, useFirestore } from '@/firebase';
+import {
+  createUserWithEmailAndPassword,
+  updateProfile,
+} from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 
 const formSchema = z.object({
-  prenom: z.string()
+  prenom: z
+    .string()
     .min(1, { message: 'Le prénom est requis.' })
-    .refine(val => val.length === 0 || val.charAt(0) === val.charAt(0).toUpperCase(), {
-      message: 'Le prénom doit commencer par une majuscule.',
-    }),
-  nom: z.string()
+    .refine(
+      (val) => val.length === 0 || val.charAt(0) === val.charAt(0).toUpperCase(),
+      {
+        message: 'Le prénom doit commencer par une majuscule.',
+      }
+    ),
+  nom: z
+    .string()
     .min(1, { message: 'Le nom est requis.' })
-    .refine(val => val.length === 0 || val === val.toUpperCase(), {
+    .refine((val) => val.length === 0 || val === val.toUpperCase(), {
       message: 'Le nom doit être en majuscules.',
     }),
-  username: z.string()
-    .min(2, { message: "Le nom d'utilisateur est requis et doit commencer par @" })
-    .startsWith('@', { message: 'Le nom d\'utilisateur doit commencer par @.' }),
+  username: z
+    .string()
+    .min(2, {
+      message: "Le nom d'utilisateur est requis et doit commencer par @",
+    })
+    .startsWith('@', { message: "Le nom d'utilisateur doit commencer par @." }),
   email: z.string().email({ message: 'Veuillez entrer un email valide.' }),
-  password: z.string().min(8, { message: 'Le mot de passe doit contenir au moins 8 caractères.' }),
+  password: z
+    .string()
+    .min(8, { message: 'Le mot de passe doit contenir au moins 8 caractères.' }),
 });
 
 export default function RegisterPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const auth = useAuth();
+  const firestore = useFirestore();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -59,29 +78,53 @@ export default function RegisterPage() {
     mode: 'onBlur',
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // Mock registration logic
-    const userData = {
-        ...values,
-        nom: values.nom.toUpperCase(),
-        prenom: values.prenom.charAt(0).toUpperCase() + values.prenom.slice(1).toLowerCase(),
-        role: 'etudiant'
-    };
-    console.log(userData);
-    toast({
-      title: 'Inscription réussie',
-      description: 'Vous pouvez maintenant vous connecter avec votre nouveau compte.',
-    });
-    // Redirect to login after a short delay
-    setTimeout(() => {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        values.email,
+        values.password
+      );
+      const user = userCredential.user;
+
+      const displayName = `${values.prenom} ${values.nom}`;
+      await updateProfile(user, {
+        displayName: displayName,
+      });
+
+      const userDocRef = doc(firestore, 'users', user.uid);
+      await setDoc(userDocRef, {
+        id: user.uid,
+        firstName: values.prenom,
+        lastName: values.nom,
+        email: values.email,
+        role: 'student', // Default role
+      });
+
+      toast({
+        title: 'Inscription réussie',
+        description:
+          'Vous pouvez maintenant vous connecter avec votre nouveau compte.',
+      });
       router.push('/login');
-    }, 1500);
+    } catch (error: any) {
+      console.error('Registration Error:', error);
+      toast({
+        variant: 'destructive',
+        title: "Échec de l'inscription",
+        description:
+          error.code === 'auth/email-already-in-use'
+            ? 'Cet email est déjà utilisé.'
+            : "Une erreur s'est produite.",
+      });
+    }
   }
 
   const handlePrenomBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     const value = e.target.value;
     if (value) {
-      const formattedValue = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+      const formattedValue =
+        value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
       form.setValue('prenom', formattedValue, { shouldValidate: true });
     }
   };
@@ -113,8 +156,8 @@ export default function RegisterPage() {
                   <FormItem>
                     <FormLabel>Prénom</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="Jean" 
+                      <Input
+                        placeholder="Jean"
                         {...field}
                         onBlur={handlePrenomBlur}
                       />
@@ -130,8 +173,8 @@ export default function RegisterPage() {
                   <FormItem>
                     <FormLabel>Nom</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="DUPONT" 
+                      <Input
+                        placeholder="DUPONT"
                         {...field}
                         onBlur={handleNomBlur}
                       />
@@ -161,7 +204,11 @@ export default function RegisterPage() {
                 <FormItem className="grid gap-2">
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="nom@exemple.com" type="email" {...field} />
+                    <Input
+                      placeholder="nom@exemple.com"
+                      type="email"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

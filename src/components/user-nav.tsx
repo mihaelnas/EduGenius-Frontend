@@ -16,79 +16,73 @@ import {
 import { LogOut, Settings, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-
-
-const roleNames = {
-  admin: 'Administrateur',
-  teacher: 'Enseignant',
-  student: 'Étudiant'
-} as const;
+import { useAuth } from '@/firebase';
+import { signOut } from 'firebase/auth';
 
 export function UserNav() {
   const router = useRouter();
-  const [userName, setUserName] = React.useState('');
-  const [userEmail, setUserEmail] = React.useState('');
-  const [userRole, setUserRole] = React.useState<keyof typeof roleNames>('student');
-  const [userPhoto, setUserPhoto] = React.useState('');
+  const auth = useAuth();
+  const user = auth.currentUser;
 
-
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const email = localStorage.getItem('userEmail') || '';
-      const role = (localStorage.getItem('userRole') as keyof typeof roleNames) || 'student';
-      const name = localStorage.getItem('userName') || 'Utilisateur';
-      
-      setUserEmail(email);
-      setUserRole(role);
-      setUserName(name);
-      setUserPhoto(`https://i.pravatar.cc/150?u=${email}`);
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout Error:', error);
     }
-  }, []);
-
-  const handleLogout = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.clear();
-    }
-    router.push('/login');
   };
+
+  const displayName = user?.displayName || 'Utilisateur';
+  const displayEmail = user?.email || '';
+  const photoURL = user?.photoURL || `https://i.pravatar.cc/150?u=${displayEmail}`;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-9 w-9">
-            <AvatarImage src={userPhoto} alt={userName} />
-            <AvatarFallback>{userName.charAt(0).toUpperCase()}</AvatarFallback>
+            <AvatarImage src={photoURL} alt={displayName} />
+            <AvatarFallback>{displayName.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{userName}</p>
-            <p className="text-xs leading-none text-muted-foreground">
-              {userEmail}
-            </p>
-          </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuItem asChild>
-            <Link href="/dashboard/profile">
-              <User className="mr-2 h-4 w-4" />
-              <span>Profil</span>
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            <Settings className="mr-2 h-4 w-4" />
-            <span>Paramètres</span>
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout}>
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>Se déconnecter</span>
-        </DropdownMenuItem>
+        {user ? (
+          <>
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium leading-none">{displayName}</p>
+                <p className="text-xs leading-none text-muted-foreground">
+                  {displayEmail}
+                </p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/profile">
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profil</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Paramètres</span>
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Se déconnecter</span>
+            </DropdownMenuItem>
+          </>
+        ) : (
+           <DropdownMenuItem onClick={() => router.push('/login')}>
+              <LogIn className="mr-2 h-4 w-4" />
+              <span>Se connecter</span>
+            </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
