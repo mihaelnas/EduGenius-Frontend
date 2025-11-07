@@ -31,6 +31,14 @@ service cloud.firestore {
       return isSignedIn() && get(/databases/$(database)/documents/subjects/$(subjectId)).data.teacherId == request.auth.uid;
     }
 
+    function isTeacherForEvent() {
+      return isSignedIn() && request.resource.data.teacherId == request.auth.uid;
+    }
+
+    function isExistingTeacherForEvent() {
+      return isSignedIn() && resource != null && resource.data.teacherId == request.auth.uid;
+    }
+
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isSignedIn();
