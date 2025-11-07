@@ -96,7 +96,7 @@ service cloud.firestore {
     /**
      * @description Rules for class information.
      * @path /classes/{classId}
-     * @allow (get, list) Public read access to class information.
+     * @allow (get, list) Admin read access to class information.
      * @allow (create) Admin creates a new class.
      * @allow (update, delete) Admin updates or deletes a class.
      * @deny (create, update, delete) Non-admin users cannot create, update, or delete classes.
@@ -112,7 +112,7 @@ service cloud.firestore {
     /**
      * @description Rules for subject information.
      * @path /subjects/{subjectId}
-     * @allow (get, list) Public read access to subject information.
+     * @allow (get, list) Admin read access to subject information.
      * @allow (create) Teacher with ID 'teacher123' creates a new subject.
      *     request.auth.uid == 'teacher123' and request.resource.data.teacherId == 'teacher123'
      * @allow (update, delete) Teacher with ID 'teacher123' updates or deletes their own subject.
@@ -200,5 +200,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
