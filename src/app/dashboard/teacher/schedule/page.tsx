@@ -24,7 +24,7 @@ const statusVariant: { [key in ScheduleEvent['status']]: 'default' | 'secondary'
 };
 
 export default function TeacherSchedulePage() {
-  const [date, setDate] = React.useState<Date | undefined>(undefined);
+  const [date, setDate] = React.useState<Date | undefined>(new Date());
   const [isAddEventDialogOpen, setIsAddEventDialogOpen] = React.useState(false);
   const { user } = useUser();
   const firestore = useFirestore();
@@ -153,11 +153,10 @@ export default function TeacherSchedulePage() {
                {date ? (
                 <Calendar
                   mode="single"
-                  selected={date}
                   onSelect={handleDateSelect}
                   className="rounded-md"
                   locale={fr}
-                  pagedNavigation
+                  defaultMonth={date}
                   disabled={(d) => {
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
