@@ -29,12 +29,6 @@ export default function TeacherSchedulePage() {
   const { user } = useUser();
   const firestore = useFirestore();
 
-  React.useEffect(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    setDate(today);
-  }, []);
-  
   const scheduleQuery = useMemoFirebase(() => 
     user ? query(collection(firestore, 'schedule'), where('teacherId', '==', user.uid)) : null,
     [user, firestore]
@@ -84,8 +78,8 @@ export default function TeacherSchedulePage() {
     }
   };
   
-  const openDialogWithDate = (date?: Date) => {
-    setDate(date);
+  const openDialogWithoutDate = () => {
+    setDate(undefined); // Clear date to ensure form is fresh
     setIsAddEventDialogOpen(true);
   }
 
@@ -94,7 +88,7 @@ export default function TeacherSchedulePage() {
     <>
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight font-headline">Emploi du temps Global</h1>
-        <Button onClick={() => openDialogWithDate(date)}>
+        <Button onClick={openDialogWithoutDate}>
           <PlusCircle className="mr-2 h-4 w-4" />
           Ajouter un événement
         </Button>
@@ -156,14 +150,14 @@ export default function TeacherSchedulePage() {
         <div>
           <Card>
             <CardContent className="p-0">
-               {date ? (
+               {date !== undefined ? (
                 <Calendar
                   mode="single"
                   selected={date}
                   onSelect={handleDateSelect}
                   className="rounded-md"
                   locale={fr}
-                  defaultMonth={date}
+                  defaultMonth={date || new Date()}
                   disabled={(d) => {
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
