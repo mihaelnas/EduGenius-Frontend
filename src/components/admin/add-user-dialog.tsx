@@ -37,7 +37,7 @@ import { AppUser } from '@/lib/placeholder-data';
 import { useAuth, useFirestore } from '@/firebase';
 import { collection, doc, getDocs, query, setDoc, where } from 'firebase/firestore';
 import { debounce } from 'lodash';
-import { createUserWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 
 const baseSchema = z.object({
@@ -216,6 +216,7 @@ export function AddUserDialog({ isOpen, setIsOpen, onUserAdded }: AddUserDialogP
       const userDocRef = doc(firestore, 'users', newAuthUser.uid);
       await setDoc(userDocRef, userProfile);
       
+      // Critical: Sign out the newly created user to keep the admin session active.
       if (auth.currentUser?.uid === newAuthUser.uid) {
          await signOut(auth);
       }
