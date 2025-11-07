@@ -73,17 +73,24 @@ function SubjectCourses({ subject }: { subject: Subject }) {
     }
   };
 
-  const handleAddCourse = (newCourseData: Omit<Course, 'id' | 'subjectId' | 'createdAt'>) => {
+  const handleAddCourse = async (newCourseData: Omit<Course, 'id' | 'subjectId' | 'createdAt'>) => {
+    if (!coursesCollectionRef) return;
     const coursePayload = {
       ...newCourseData,
       subjectId: subject.id,
       createdAt: new Date().toISOString(),
     };
-    addDocumentNonBlocking(coursesCollectionRef, coursePayload);
-    toast({
-      title: 'Cours ajouté',
-      description: `Le cours "${newCourseData.title}" a été créé avec succès.`,
-    });
+    try {
+        await addDocumentNonBlocking(coursesCollectionRef, coursePayload);
+        toast({
+        title: 'Cours ajouté',
+        description: `Le cours "${newCourseData.title}" a été créé avec succès.`,
+        });
+    } catch (error) {
+        // The error will be emitted by the non-blocking-update function
+        // but you could add an additional toast here if needed.
+        console.error("Failed to add course:", error);
+    }
   };
 
   const handleUpdateCourse = (updatedCourse: Course) => {
