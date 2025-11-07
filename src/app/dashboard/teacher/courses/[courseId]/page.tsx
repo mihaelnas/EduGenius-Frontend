@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useParams, notFound } from 'next/navigation';
+import { useParams, notFound, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Course,
@@ -29,17 +29,15 @@ const ResourceIcon = ({ type }: { type: Resource['type'] }) => {
 
 export default function TeacherCourseDetailPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const courseId = params.courseId as string;
-  // The subjectId is available if you need it, but we'll fetch the course directly.
-  // const subjectId = params.subjectId as string; 
+  const subjectId = searchParams.get('subjectId');
   const firestore = useFirestore();
 
   const courseDocRef = useMemoFirebase(() => {
-    if (!firestore || !courseId) return null;
-    // Assuming courses are a root collection for simplicity now.
-    // If they are a subcollection, the path would be `subjects/${subjectId}/courses/${courseId}`
-    return doc(firestore, 'courses', courseId);
-  }, [firestore, courseId]);
+    if (!firestore || !subjectId || !courseId) return null;
+    return doc(firestore, `subjects/${subjectId}/courses`, courseId);
+  }, [firestore, subjectId, courseId]);
 
   const { data: course, isLoading: isLoadingCourse } = useDoc<Course>(courseDocRef);
 
@@ -133,5 +131,3 @@ export default function TeacherCourseDetailPage() {
     </div>
   );
 }
-
-    
