@@ -19,10 +19,21 @@ const resourceSchema = z.object({
   id: z.string().optional(),
   type: z.enum(['pdf', 'video', 'link']),
   title: z.string().min(1, 'Le titre est requis.'),
-  url: z.any().refine(val => (typeof val === 'string' && val.length > 0) || (typeof window !== 'undefined' && val instanceof FileList && val.length > 0), {
-    message: 'Un fichier ou une URL est requis(e).',
-  }),
+  url: z.string().optional(),
+  file: z.any().optional(),
+}).refine(data => {
+  if (data.type === 'link' || data.type === 'video') {
+    return !!data.url && data.url.length > 0;
+  }
+  if (data.type === 'pdf') {
+    return !!data.file && data.file.length > 0;
+  }
+  return false;
+}, {
+  message: 'Un fichier ou une URL est requis(e).',
+  path: ['url'], // path to show error under
 });
+
 
 const formSchema = z.object({
   title: z.string().min(1, 'Le titre est requis.'),
@@ -63,11 +74,12 @@ export function AddCourseDialog({ isOpen, setIsOpen, subjectId, onCourseAdded }:
       title: values.title,
       content: values.content,
       resources: values.resources.map(r => ({ 
-          ...r, 
           id: `res_${Date.now()}_${Math.random()}`,
+          type: r.type,
+          title: r.title,
           // In a real app, you'd upload the file and get a URL.
-          // For demo, we'll just store the file name.
-          url: typeof r.url === 'object' && r.url.length > 0 ? r.url[0].name : r.url,
+          // For demo, we'll just store the file name or the url.
+          url: r.type === 'pdf' ? (r.file?.[0]?.name || '') : (r.url || ''),
       }))
     };
     onCourseAdded(newCourse);
@@ -101,31 +113,40 @@ export function AddCourseDialog({ isOpen, setIsOpen, subjectId, onCourseAdded }:
               <div className="space-y-4">
                 {fields.map((field, index) => {
                   const resourceType = watchedResources[index]?.type;
-                  const urlProps = form.register(`resources.${index}.url`);
                   return (
                     <div key={field.id} className="flex gap-2 items-end p-3 border rounded-md">
                       <FormField control={form.control} name={`resources.${index}.type`} render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Type</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Choisir..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="pdf">PDF</SelectItem><SelectItem value="video">Vidéo</SelectItem><SelectItem value="link">Lien</SelectItem></SelectContent></Select><FormMessage /></FormItem> )} />
                       <FormField control={form.control} name={`resources.${index}.title`} render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Titre</FormLabel><FormControl><Input placeholder="Titre de la ressource" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                      <FormField
-                        control={form.control}
-                        name={`resources.${index}.url`}
-                        render={({ field }) => (
-                          <FormItem className="flex-1">
-                            <FormLabel>{resourceType === 'link' || resourceType === 'video' ? 'URL' : 'Fichier'}</FormLabel>
-                            <FormControl>
-                              {resourceType === 'link' || resourceType === 'video' ? (
-                                <Input placeholder="https://..." {...field} />
-                              ) : (
-                                <Input
-                                  type="file"
-                                  {...urlProps}
-                                />
+                      
+                        <FormItem className="flex-1">
+                          <FormLabel>{resourceType === 'link' || resourceType === 'video' ? 'URL' : 'Fichier'}</FormLabel>
+                          {resourceType === 'link' || resourceType === 'video' ? (
+                            <FormField
+                              control={form.control}
+                              name={`resources.${index}.url`}
+                              render={({ field }) => (
+                                <FormControl>
+                                  <Input placeholder="https://..." {...field} value={field.value || ''} />
+                                </FormControl>
                               )}
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                            />
+                          ) : (
+                             <FormField
+                              control={form.control}
+                              name={`resources.${index}.file`}
+                              render={() => (
+                                <FormControl>
+                                  <Input
+                                    type="file"
+                                    {...form.register(`resources.${index}.file`)}
+                                  />
+                                </FormControl>
+                              )}
+                            />
+                          )}
+                           <FormMessage>{form.formState.errors.resources?.[index]?.url?.message}</FormMessage>
+                        </FormItem>
+                      
                       <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => remove(index)}><Trash2 className="h-4 w-4" /></Button>
                     </div>
                   );
