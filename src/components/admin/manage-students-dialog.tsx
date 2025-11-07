@@ -55,7 +55,8 @@ export function ManageStudentsDialog({ isOpen, setIsOpen, classData, allStudents
   };
   
   const filteredStudents = allStudents.filter(student =>
-    (student.role === 'student') &&
+    student.role === 'student' &&
+    (student as Student).niveau === classData.niveau &&
     (getDisplayName(student).toLowerCase().includes(searchTerm.toLowerCase()) || 
      (student as Student).matricule.toLowerCase().includes(searchTerm.toLowerCase()))
   );
@@ -96,6 +97,11 @@ export function ManageStudentsDialog({ isOpen, setIsOpen, classData, allStudents
                     </Label>
                 </div>
             ))}
+            {filteredStudents.length === 0 && (
+              <div className="text-center text-sm text-muted-foreground p-4">
+                Aucun étudiant de niveau {classData.niveau} trouvé.
+              </div>
+            )}
             </div>
         </ScrollArea>
         <DialogFooter>
