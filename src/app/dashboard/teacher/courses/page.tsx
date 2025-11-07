@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -140,7 +139,7 @@ function SubjectCourses({ subject }: { subject: Subject }) {
                 </div>
               </div>
 
-              {course.resources.length > 0 && (
+              {course.resources && course.resources.length > 0 && (
                 <div className="mt-3 space-y-2 border-t pt-3">
                     <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ressources</h4>
                   {course.resources.map(resource => (

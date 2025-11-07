@@ -32,7 +32,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { PlusCircle } from 'lucide-react';
 import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { debounce } from 'lodash';
 
@@ -41,6 +41,7 @@ const formSchema = z.object({
   credit: z.coerce.number().min(1, { message: 'Les crédits sont requis.' }),
   semestre: z.enum(['S1', 'S2']),
   photo: z.string().url({ message: 'Veuillez entrer une URL valide pour la photo.' }).optional().or(z.literal('')),
+  teacherId: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -53,12 +54,14 @@ type AddSubjectDialogProps = {
 
 export function AddSubjectDialog({ isOpen, setIsOpen, onSubjectAdded }: AddSubjectDialogProps) {
   const firestore = useFirestore();
+  const { user } = useUser();
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
       credit: 1,
       photo: '',
+      teacherId: user?.uid,
     },
   });
 
@@ -97,6 +100,7 @@ export function AddSubjectDialog({ isOpen, setIsOpen, onSubjectAdded }: AddSubje
     const finalValues = {
         ...values,
         name: values.name.toUpperCase(),
+        teacherId: user?.uid
     };
 
     const subjectsRef = collection(firestore, 'subjects');
@@ -111,7 +115,7 @@ export function AddSubjectDialog({ isOpen, setIsOpen, onSubjectAdded }: AddSubje
         return;
     }
 
-    onSubjectAdded(finalValues);
+    onSubjectAdded(finalValues as FormValues);
     setIsOpen(false);
     form.reset();
   }
