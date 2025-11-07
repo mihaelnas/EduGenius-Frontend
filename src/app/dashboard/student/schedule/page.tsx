@@ -2,21 +2,28 @@
 'use client';
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { schedule, ScheduleEvent, users, getDisplayName, AppUser, classes } from '@/lib/placeholder-data';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScheduleEvent, getDisplayName, AppUser, Class } from '@/lib/placeholder-data';
 import { addDays, format, startOfWeek, isSameDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
 import { User, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-
-// Mock: assumes the logged in student is Bob Williams (id: usr_3)
-const STUDENT_ID = 'usr_3';
+import { useUser, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query, where, limit } from 'firebase/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const DayColumn = ({ day, events, getTeacherName }: { day: Date; events: ScheduleEvent[]; getTeacherName: (id: string) => string; }) => {
   const dayEvents = events
-    .filter(event => isSameDay(new Date(event.date), day))
+    .filter(event => {
+        // Firebase stores date as 'YYYY-MM-DD'. We need to compare just the date part.
+        const eventDate = new Date(event.date);
+        // Adjust for timezone differences by comparing year, month, and day
+        return eventDate.getFullYear() === day.getFullYear() &&
+               eventDate.getMonth() === day.getMonth() &&
+               eventDate.getDate() === day.getDate();
+    })
     .sort((a, b) => a.startTime.localeCompare(b.startTime));
 
   return (
@@ -25,7 +32,7 @@ const DayColumn = ({ day, events, getTeacherName }: { day: Date; events: Schedul
         <p className="font-semibold text-lg">{format(day, 'EEEE', { locale: fr })}</p>
         <p className="text-sm text-muted-foreground">{format(day, 'd MMMM', { locale: fr })}</p>
       </div>
-      <div className="space-y-3 px-2">
+      <div className="space-y-3 px-2 min-h-[100px]">
         {dayEvents.length > 0 ? (
           dayEvents.map(event => (
             <Card key={event.id} className="w-full">
@@ -60,18 +67,37 @@ const DayColumn = ({ day, events, getTeacherName }: { day: Date; events: Schedul
 
 export default function StudentSchedulePage() {
   const [week, setWeek] = React.useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
 
-  const studentClasses = classes.filter(c => c.studentIds.includes(STUDENT_ID));
-  const studentClassNames = studentClasses.map(c => c.name);
+  // 1. Get all users to map teacher IDs to names later
+  const usersCollectionRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+  const { data: allUsers, isLoading: isLoadingUsers } = useCollection<AppUser>(usersCollectionRef);
 
-  const studentSchedule = schedule.filter(event => studentClassNames.includes(event.class));
-  
+  // 2. Find the student's class
+  const studentClassQuery = useMemoFirebase(() =>
+    user ? query(collection(firestore, 'classes'), where('studentIds', 'array-contains', user.uid), limit(1)) : null,
+    [user, firestore]
+  );
+  const { data: studentClasses, isLoading: isLoadingClass } = useCollection<Class>(studentClassQuery);
+  const studentClass = studentClasses?.[0];
+
+  // 3. Get schedule events for that class
+  const scheduleQuery = useMemoFirebase(() =>
+    studentClass ? query(collection(firestore, 'schedule'), where('class', '==', studentClass.name)) : null,
+    [studentClass, firestore]
+  );
+  const { data: studentSchedule, isLoading: isLoadingSchedule } = useCollection<ScheduleEvent>(scheduleQuery);
+
   const getTeacherName = (id: string): string => {
-    const teacher = users.find(u => u.id === id);
+    if (!allUsers) return 'Chargement...';
+    const teacher = allUsers.find(u => u.id === id);
     return teacher ? getDisplayName(teacher) : 'N/A';
   };
 
   const daysOfWeek = Array.from({ length: 5 }, (_, i) => addDays(week, i));
+
+  const isLoading = isUserLoading || isLoadingUsers || isLoadingClass || isLoadingSchedule;
 
   return (
     <>
@@ -80,20 +106,40 @@ export default function StudentSchedulePage() {
       
       <Card className="mt-6">
           <CardHeader>
-             {/* Note: Week navigation can be added here */}
             <CardTitle>Semaine du {format(week, 'd MMMM yyyy', { locale: fr })}</CardTitle>
           </CardHeader>
           <CardContent>
+             {isLoading ? (
+                <div className="flex divide-x rounded-lg border">
+                    {Array.from({length: 5}).map((_, i) => (
+                        <div key={i} className="flex-1 space-y-4">
+                             <div className="text-center pb-2 border-b p-2">
+                                <Skeleton className="h-6 w-24 mx-auto" />
+                                <Skeleton className="h-4 w-20 mx-auto mt-1" />
+                             </div>
+                             <div className="p-2 space-y-3">
+                                <Skeleton className="h-28 w-full" />
+                             </div>
+                        </div>
+                    ))}
+                </div>
+             ) : (
               <div className="flex divide-x rounded-lg border">
                 {daysOfWeek.map(day => (
                     <DayColumn 
                         key={day.toISOString()} 
                         day={day} 
-                        events={studentSchedule}
+                        events={studentSchedule || []}
                         getTeacherName={getTeacherName}
                     />
                 ))}
               </div>
+             )}
+              {!isLoading && !studentClass && (
+                 <div className="text-center py-10 text-muted-foreground">
+                    <p>Vous n'êtes inscrit(e) dans aucune classe pour le moment.</p>
+                 </div>
+              )}
           </CardContent>
       </Card>
     </>
