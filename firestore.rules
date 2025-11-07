@@ -146,7 +146,7 @@ service cloud.firestore {
     match /roles_admin/{userId} {
        allow get: if isAdmin();
        allow list: if false;
-       allow create: if isOwner(userId) || isAdmin();
+       allow create: if isOwner(userId);
        allow update: if false;
        allow delete: if isAdmin();
     }

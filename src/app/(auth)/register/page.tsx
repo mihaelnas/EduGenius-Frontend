@@ -80,21 +80,24 @@ export default function RegisterPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
 
-      // Create user profile with 'admin' role
+      // Étape 1 : Créer le profil utilisateur avec le rôle 'admin'
       const userProfile = {
         id: user.uid,
         firstName: values.prenom,
         lastName: values.nom,
         email: values.email,
-        role: 'admin', 
+        role: 'admin', // FORCER LE ROLE ADMIN
+        status: 'active',
+        createdAt: new Date().toISOString(),
       };
       
       const userDocRef = doc(firestore, 'users', user.uid);
-      setDocumentNonBlocking(userDocRef, userProfile, { merge: true });
+      // Utiliser setDoc directement ici pour s'assurer que l'écriture est tentée
+      await setDoc(userDocRef, userProfile);
 
-      // Create admin role document
+      // Étape 2 : Créer le document de rôle admin correspondant
       const adminRoleRef = doc(firestore, 'roles_admin', user.uid);
-      setDocumentNonBlocking(adminRoleRef, { createdAt: new Date().toISOString() }, {});
+      await setDoc(adminRoleRef, { createdAt: new Date().toISOString() });
 
       toast({
         title: 'Inscription réussie',
