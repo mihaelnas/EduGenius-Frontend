@@ -19,7 +19,9 @@ const resourceSchema = z.object({
   id: z.string().optional(),
   type: z.enum(['pdf', 'video', 'link']),
   title: z.string().min(1, 'Le titre est requis.'),
-  url: z.string().min(1, 'Un fichier ou une URL est requis(e).'), // Represents file path or URL
+  url: z.any().refine(val => (typeof val === 'string' && val.length > 0) || (typeof window !== 'undefined' && val instanceof FileList && val.length > 0), {
+    message: 'Un fichier ou une URL est requis(e).',
+  }),
 });
 
 const formSchema = z.object({
@@ -58,8 +60,15 @@ export function AddCourseDialog({ isOpen, setIsOpen, subjectId, onCourseAdded }:
       id: `crs_${Date.now()}`,
       subjectId: subjectId,
       createdAt: new Date().toISOString(),
-      ...values,
-      resources: values.resources.map(r => ({ ...r, id: `res_${Date.now()}_${Math.random()}`}))
+      title: values.title,
+      content: values.content,
+      resources: values.resources.map(r => ({ 
+          ...r, 
+          id: `res_${Date.now()}_${Math.random()}`,
+          // In a real app, you'd upload the file and get a URL.
+          // For demo, we'll just store the file name.
+          url: typeof r.url === 'object' && r.url.length > 0 ? r.url[0].name : r.url,
+      }))
     };
     onCourseAdded(newCourse);
     toast({
@@ -98,14 +107,13 @@ export function AddCourseDialog({ isOpen, setIsOpen, subjectId, onCourseAdded }:
                       <FormField control={form.control} name={`resources.${index}.title`} render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Titre</FormLabel><FormControl><Input placeholder="Titre de la ressource" {...field} /></FormControl><FormMessage /></FormItem> )} />
                       <FormField control={form.control} name={`resources.${index}.url`} render={({ field }) => (
                         <FormItem className="flex-1">
-                          <FormLabel>{resourceType === 'link' ? 'URL' : 'Fichier'}</FormLabel>
+                          <FormLabel>{resourceType === 'link' || resourceType === 'video' ? 'URL' : 'Fichier'}</FormLabel>
                           <FormControl>
-                            <Input
-                              type={resourceType === 'link' ? 'text' : 'file'}
-                              placeholder={resourceType === 'link' ? 'https://...' : ''}
-                              {...field}
-                              value={resourceType !== 'link' ? undefined : field.value} // File input cannot be a controlled component
-                            />
+                            {resourceType === 'link' || resourceType === 'video' ? (
+                                <Input placeholder="https://..." {...field} />
+                            ) : (
+                                <Input type="file" {...form.register(`resources.${index}.url`)} />
+                            )}
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -120,7 +128,7 @@ export function AddCourseDialog({ isOpen, setIsOpen, subjectId, onCourseAdded }:
               </div>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className='pt-4'>
                <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Annuler</Button>
               <Button type="submit">Créer le cours</Button>
             </DialogFooter>
