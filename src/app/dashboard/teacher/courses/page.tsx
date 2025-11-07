@@ -42,7 +42,7 @@ function SubjectCourses({ subject }: { subject: Subject }) {
     () => firestore ? query(collection(firestore, `courses`), where('subjectId', '==', subject.id)) : null,
     [firestore, subject.id]
   );
-  const { data: courses, isLoading: isLoadingCourses } = useCollection<Course>(coursesQuery);
+  const { data: courses, isLoading: isLoadingCourses } = useCollection<Course>(coursesQuery as Query<Course> | null);
 
 
   const [isAddCourseDialogOpen, setIsAddCourseDialogOpen] = React.useState(false);
@@ -79,15 +79,15 @@ function SubjectCourses({ subject }: { subject: Subject }) {
   };
 
   const handleAddCourse = async (values: AddCourseFormValues) => {
-    if (!user) {
-      toast({ variant: 'destructive', title: 'Erreur', description: 'Utilisateur non authentifié.' });
+    if (!user || !firestore) {
+      toast({ variant: 'destructive', title: 'Erreur', description: 'Utilisateur ou service non disponible.' });
       return;
     }
-    
+
     const courseCollectionRef = collection(firestore, 'courses');
 
     try {
-        const newCourse: Omit<Course, 'id'> = {
+        const newCoursePayload: Omit<Course, 'id'> = {
             ...values,
             subjectId: subject.id,
             subjectName: subject.name,
@@ -95,13 +95,14 @@ function SubjectCourses({ subject }: { subject: Subject }) {
             createdAt: new Date().toISOString(),
             resources: values.resources.map(r => ({
                 ...r,
-                id: `res_${Date.now()}_${Math.random()}`,
+                id: `res_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             }))
         };
-        const docRef = await addDoc(courseCollectionRef, newCourse);
+
+        const courseDocRef = await addDoc(courseCollectionRef, newCoursePayload);
         
-        // Firestore automatically assigns an ID, but let's write it to the document for consistency
-        await updateDoc(docRef, { id: docRef.id });
+        // Update the document with its own ID
+        await updateDoc(courseDocRef, { id: courseDocRef.id });
 
         toast({
             title: 'Cours ajouté',
@@ -124,7 +125,7 @@ function SubjectCourses({ subject }: { subject: Subject }) {
         return;
     }
     const courseDocRef = doc(firestore, `courses`, updatedData.id);
-    await updateDoc(courseDocRef, updatedData);
+    await updateDoc(courseDocRef, { ...updatedData });
     toast({
       title: 'Cours modifié',
       description: `Le cours "${updatedData.title}" a été mis à jour.`,
@@ -234,7 +235,7 @@ export default function TeacherCoursesPage() {
     [user, firestore]
   );
   
-  const { data: teacherSubjects, isLoading: isLoadingSubjects } = useCollection<Subject>(teacherSubjectsQuery);
+  const { data: teacherSubjects, isLoading: isLoadingSubjects } = useCollection<Subject>(teacherSubjectsQuery as Query<Subject> | null);
 
   const isLoading = isUserLoading || isLoadingSubjects;
   
