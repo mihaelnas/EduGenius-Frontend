@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -30,8 +30,11 @@ import {
 } from '@/components/ui/select';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { PlusCircle } from 'lucide-react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
+import { useFirestore } from '@/firebase';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { debounce } from 'lodash';
 
 const formSchema = z.object({
   name: z.string().min(1, { message: 'Le nom de la matière est requis.' }),
@@ -49,6 +52,7 @@ type AddSubjectDialogProps = {
 }
 
 export function AddSubjectDialog({ isOpen, setIsOpen, onSubjectAdded }: AddSubjectDialogProps) {
+  const firestore = useFirestore();
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -58,8 +62,56 @@ export function AddSubjectDialog({ isOpen, setIsOpen, onSubjectAdded }: AddSubje
     },
   });
 
-  function onSubmit(values: FormValues) {
-    onSubjectAdded(values);
+  const subjectNameValue = useWatch({
+    control: form.control,
+    name: 'name',
+  });
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const checkSubjectNameUniqueness = useCallback(
+    debounce(async (name: string) => {
+      if (!name) return;
+      const subjectsRef = collection(firestore, 'subjects');
+      const q = query(subjectsRef, where('name', '==', name.toUpperCase()));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        form.setError('name', {
+          type: 'manual',
+          message: 'Ce nom de matière existe déjà.',
+        });
+      } else {
+        form.clearErrors('name');
+      }
+    }, 500),
+    [firestore, form]
+  );
+
+  useEffect(() => {
+    if (subjectNameValue) {
+      checkSubjectNameUniqueness(subjectNameValue);
+    }
+  }, [subjectNameValue, checkSubjectNameUniqueness]);
+
+
+  async function onSubmit(values: FormValues) {
+    const finalValues = {
+        ...values,
+        name: values.name.toUpperCase(),
+    };
+
+    const subjectsRef = collection(firestore, 'subjects');
+    const q = query(subjectsRef, where('name', '==', finalValues.name));
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+        form.setError('name', {
+            type: 'manual',
+            message: 'Ce nom de matière existe déjà.',
+        });
+        return;
+    }
+
+    onSubjectAdded(finalValues);
     setIsOpen(false);
     form.reset();
   }
@@ -70,6 +122,13 @@ export function AddSubjectDialog({ isOpen, setIsOpen, onSubjectAdded }: AddSubje
       form.reset();
     }
   }
+
+  const handleNameBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value) {
+      form.setValue('name', value.toUpperCase(), { shouldValidate: true });
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
@@ -95,7 +154,7 @@ export function AddSubjectDialog({ isOpen, setIsOpen, onSubjectAdded }: AddSubje
                 <FormItem>
                   <FormLabel>Nom de la matière</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ex: Algorithmique" {...field} />
+                    <Input placeholder="Ex: ALGORITHMIQUE" {...field} onBlur={handleNameBlur} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
