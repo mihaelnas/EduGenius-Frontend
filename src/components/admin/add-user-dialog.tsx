@@ -35,12 +35,13 @@ import { z } from 'zod';
 import { ScrollArea } from '../ui/scroll-area';
 
 const baseSchema = z.object({
-  role: z.enum(['student', 'teacher', 'admin']),
+  role: z.enum(['student', 'teacher']),
   firstName: z.string().min(1, { message: 'Le prénom est requis.' }),
   lastName: z.string().min(1, { message: 'Le nom est requis.' }),
   username: z.string().min(2, { message: "Le nom d'utilisateur est requis." }).startsWith('@', { message: 'Doit commencer par @.' }),
   email: z.string().email({ message: 'Email invalide.' }),
   password: z.string().min(8, { message: 'Le mot de passe doit contenir au moins 8 caractères.' }),
+  confirmPassword: z.string(),
   photo: z.string().url({ message: 'URL invalide.' }).optional().or(z.literal('')),
 });
 
@@ -65,11 +66,12 @@ const teacherSchema = baseSchema.extend({
   specialite: z.string().optional().or(z.literal('')),
 });
 
-const adminSchema = baseSchema.extend({
-    role: z.literal('admin'),
-});
+const formSchema = z.discriminatedUnion('role', [studentSchema, teacherSchema])
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Les mots de passe ne correspondent pas.",
+    path: ["confirmPassword"],
+  });
 
-const formSchema = z.discriminatedUnion('role', [studentSchema, teacherSchema, adminSchema]);
 export type AddUserFormValues = z.infer<typeof formSchema>;
 
 type AddUserDialogProps = {
@@ -85,6 +87,7 @@ const initialValues = {
   username: '@',
   email: '',
   password: '',
+  confirmPassword: '',
   photo: '',
   // Student fields
   matricule: '',
@@ -172,7 +175,6 @@ export function AddUserDialog({ isOpen, setIsOpen, onUserAdded }: AddUserDialogP
                                     <SelectContent>
                                         <SelectItem value="student">Étudiant</SelectItem>
                                         <SelectItem value="teacher">Enseignant</SelectItem>
-                                        <SelectItem value="admin">Administrateur</SelectItem>
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
@@ -188,6 +190,7 @@ export function AddUserDialog({ isOpen, setIsOpen, onUserAdded }: AddUserDialogP
                         <FormField control={form.control} name="username" render={({ field }) => ( <FormItem><FormLabel>Nom d'utilisateur</FormLabel><FormControl><Input placeholder="@jeandupont" {...field} /></FormControl><FormMessage /></FormItem> )} />
                         <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>Email</FormLabel><FormControl><Input placeholder="nom@exemple.com" type="email" {...field} /></FormControl><FormMessage /></FormItem> )} />
                         <FormField control={form.control} name="password" render={({ field }) => ( <FormItem><FormLabel>Mot de passe</FormLabel><FormControl><Input placeholder="8+ caractères" type="password" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="confirmPassword" render={({ field }) => ( <FormItem><FormLabel>Confirmer le mot de passe</FormLabel><FormControl><Input placeholder="Retapez le mot de passe" type="password" {...field} /></FormControl><FormMessage /></FormItem> )} />
                         
                         {role === 'student' && (
                             <>
@@ -228,6 +231,3 @@ export function AddUserDialog({ isOpen, setIsOpen, onUserAdded }: AddUserDialogP
     </Dialog>
   );
 }
-
-    
-    

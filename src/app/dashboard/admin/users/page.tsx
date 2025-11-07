@@ -47,7 +47,7 @@ export default function AdminUsersPage() {
   const { data: users, isLoading } = useCollection<AppUser>(usersCollectionRef);
 
   const handleAdd = async (values: AddUserFormValues) => {
-    const { password, ...userData } = values;
+    const { password, confirmPassword, ...userData } = values;
     
     // Create a temporary, secondary Firebase app instance for user creation.
     // This prevents the current admin user from being signed out.
