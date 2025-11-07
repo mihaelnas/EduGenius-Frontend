@@ -25,7 +25,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth, useFirestore, setDocumentNonBlocking } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 
@@ -92,7 +92,6 @@ export default function RegisterPage() {
       };
       
       const userDocRef = doc(firestore, 'users', user.uid);
-      // Utiliser setDoc directement ici pour s'assurer que l'écriture est tentée
       await setDoc(userDocRef, userProfile);
 
       // Étape 2 : Créer le document de rôle admin correspondant
@@ -238,3 +237,5 @@ export default function RegisterPage() {
     </Card>
   );
 }
+
+    
