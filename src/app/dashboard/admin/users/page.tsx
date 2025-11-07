@@ -68,8 +68,8 @@ export default function AdminUsersPage() {
       await setDoc(userDocRef, userProfile);
 
       toast({
-        title: 'Utilisateur ajouté (simulation)',
-        description: `Le profil de ${getDisplayName(values)} a été créé dans Firestore.`,
+        title: `Utilisateur ${getDisplayName(values)} ajouté.`,
+        description: 'Le profil a été créé dans Firestore.',
       });
     } catch (error: any) {
       console.error("User creation failed:", error);
@@ -246,6 +246,3 @@ export default function AdminUsersPage() {
     </>
   );
 }
-
-    
-    
