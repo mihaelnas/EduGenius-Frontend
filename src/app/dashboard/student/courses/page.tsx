@@ -102,19 +102,23 @@ function SubjectAccordionItem({ subject }: { subject: Subject }) {
                         <Skeleton className="h-8 w-full" />
                     </div>
                 ) : courses && courses.length > 0 ? (
-                    courses.map(course => (
-                    <Link
-                      key={course.id}
-                      href={`/dashboard/student/courses/${subject.id}/${course.id}`}
-                      className="flex items-center justify-between gap-3 p-4 mx-2 rounded-md hover:bg-muted"
-                    >
-                      <div className="flex items-center gap-3">
-                         <BookOpen className="h-5 w-5 text-primary" />
-                        <span className="font-medium text-foreground/80">{course.title}</span>
-                      </div>
-                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                    </Link>
-                  ))
+                    courses.map(course => {
+                      const href = `/dashboard/student/courses/${subject.id}/${course.id}`;
+                      console.log(`[StudentCoursesPage] Génération du lien pour le cours "${course.title}": ${href}`);
+                      return (
+                        <Link
+                          key={course.id}
+                          href={href}
+                          className="flex items-center justify-between gap-3 p-4 mx-2 rounded-md hover:bg-muted"
+                        >
+                          <div className="flex items-center gap-3">
+                            <BookOpen className="h-5 w-5 text-primary" />
+                            <span className="font-medium text-foreground/80">{course.title}</span>
+                          </div>
+                          <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                        </Link>
+                      );
+                    })
                 ) : (
                     <p className="px-6 py-4 text-sm text-muted-foreground">Aucun cours disponible pour cette matière.</p>
                 )}
