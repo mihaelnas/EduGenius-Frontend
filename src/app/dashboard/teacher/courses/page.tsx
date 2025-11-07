@@ -34,6 +34,7 @@ const ResourceIcon = ({ type }: { type: Resource['type'] }) => {
 
 function SubjectCourses({ subject }: { subject: Subject }) {
   const firestore = useFirestore();
+  const { user } = useUser();
   const { toast } = useToast();
   
   const coursesCollectionRef = useMemoFirebase(() => collection(firestore, 'subjects', subject.id, 'courses'), [firestore, subject.id]);
@@ -72,28 +73,39 @@ function SubjectCourses({ subject }: { subject: Subject }) {
     }
   };
 
-  const handleAddCourse = async (newCourseData: Omit<Course, 'id' | 'subjectId' | 'createdAt'>) => {
-    if (!coursesCollectionRef) return;
+  const handleAddCourse = async (newCourseData: Omit<Course, 'id' | 'subjectId' | 'createdAt' | 'teacherId'>) => {
+    if (!coursesCollectionRef || !user) {
+        toast({
+            variant: 'destructive',
+            title: 'Utilisateur non authentifié',
+            description: "Impossible de créer le cours.",
+        });
+        return;
+    };
+
     const coursePayload = {
       ...newCourseData,
       subjectId: subject.id,
+      teacherId: user.uid, // Include teacher's ID
       createdAt: new Date().toISOString(),
     };
+
     try {
         await addDocumentNonBlocking(coursesCollectionRef, coursePayload);
         toast({
-        title: 'Cours ajouté',
-        description: `Le cours "${newCourseData.title}" a été créé avec succès.`,
+            title: 'Cours ajouté',
+            description: `Le cours "${newCourseData.title}" a été créé avec succès.`,
         });
     } catch (error) {
         console.error("Failed to add course:", error);
-         toast({
+        toast({
             variant: 'destructive',
-            title: 'Échec de l\'ajout',
-            description: "Le cours n'a pas pu être créé. Vérifiez vos permissions ou contactez un administrateur.",
+            title: 'Échec de l\'ajout du cours',
+            description: "Vérifiez que vous êtes bien l'enseignant de cette matière ou contactez un administrateur.",
         });
     }
   };
+
 
   const handleUpdateCourse = (updatedCourse: Course) => {
     const { id, ...courseData } = updatedCourse;

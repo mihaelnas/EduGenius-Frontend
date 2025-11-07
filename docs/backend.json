@@ -105,6 +105,10 @@
           "type": "string",
           "description": "Reference to Subject. (Relationship: Subject 1:N Course)"
         },
+        "teacherId": {
+          "type": "string",
+          "description": "The ID of the teacher who created the course."
+        },
         "title": {
           "type": "string",
           "description": "The title of the course (e.g., 'Introduction to Algebra')."
@@ -117,6 +121,7 @@
       "required": [
         "id",
         "subjectId",
+        "teacherId",
         "title",
         "content"
       ]
@@ -235,7 +240,7 @@
           "schema": {
             "$ref": "#/backend/entities/Course"
           },
-          "description": "Stores courses within a subject.  Authorization based on the `teacherId` in the parent `Subject`.",
+          "description": "Stores courses within a subject.  Authorization based on the `teacherId` in the course document itself.",
           "params": [
             {
               "name": "subjectId",

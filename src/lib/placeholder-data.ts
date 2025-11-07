@@ -69,6 +69,7 @@ export type Course = {
   title: string;
   content: string;
   subjectId: string;
+  teacherId: string;
   resources: Resource[];
   createdAt: string;
 };
