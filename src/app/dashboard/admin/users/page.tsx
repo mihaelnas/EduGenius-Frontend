@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { users as initialUsers, getDisplayName, AppUser } from '@/lib/placeholder-data';
+import { getDisplayName, AppUser } from '@/lib/placeholder-data';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Search } from 'lucide-react';
@@ -15,25 +15,30 @@ import { AddUserDialog } from '@/components/admin/add-user-dialog';
 import { EditUserDialog } from '@/components/admin/edit-user-dialog';
 import { DeleteConfirmationDialog } from '@/components/admin/delete-confirmation-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdminUsersPage() {
   const [searchTerm, setSearchTerm] = React.useState('');
-  const [users, setUsers] = React.useState<AppUser[]>(initialUsers);
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
   const [selectedUser, setSelectedUser] = React.useState<AppUser | null>(null);
   const { toast } = useToast();
+  const firestore = useFirestore();
+
+  const usersCollectionRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+  const { data: users, isLoading } = useCollection<AppUser>(usersCollectionRef);
 
   const handleAdd = (newUser: Omit<AppUser, 'id' | 'status' | 'createdAt'>) => {
-    const newUserData: AppUser = {
+    const newUserData: Omit<AppUser, 'id'> = {
         ...newUser,
-        id: `usr_${Date.now()}`,
         status: 'active',
         createdAt: new Date().toISOString().split('T')[0],
         photo: newUser.photo || `https://i.pravatar.cc/150?u=${newUser.email}`
     };
-    setUsers(prev => [newUserData, ...prev]);
+    addDocumentNonBlocking(usersCollectionRef, newUserData);
     toast({
       title: 'Utilisateur ajouté',
       description: `L'utilisateur ${getDisplayName(newUserData)} a été créé.`,
@@ -41,7 +46,9 @@ export default function AdminUsersPage() {
   };
 
   const handleUpdate = (updatedUser: AppUser) => {
-    setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+    const userDocRef = doc(firestore, 'users', updatedUser.id);
+    const { id, ...userData } = updatedUser;
+    updateDocumentNonBlocking(userDocRef, userData);
     toast({
       title: 'Utilisateur modifié',
       description: `L'utilisateur ${getDisplayName(updatedUser)} a été mis à jour.`,
@@ -60,7 +67,8 @@ export default function AdminUsersPage() {
 
   const confirmDelete = () => {
     if (selectedUser) {
-      setUsers(users.filter(u => u.id !== selectedUser.id));
+      const userDocRef = doc(firestore, 'users', selectedUser.id);
+      deleteDocumentNonBlocking(userDocRef);
       toast({
         variant: 'destructive',
         title: 'Utilisateur supprimé',
@@ -71,10 +79,10 @@ export default function AdminUsersPage() {
     }
   };
 
-  const filteredUsers = users.filter(user =>
+  const filteredUsers = React.useMemo(() => (users || []).filter(user =>
     getDisplayName(user).toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ), [users, searchTerm]);
 
   return (
     <>
@@ -118,46 +126,59 @@ export default function AdminUsersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-9 w-9">
-                        <AvatarImage src={user.photo} alt={getDisplayName(user)} />
-                        <AvatarFallback>{user.prenom.charAt(0)}{user.nom.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div className="grid gap-0.5">
-                          <span className="font-semibold">{getDisplayName(user)}</span>
-                          <span className="text-xs text-muted-foreground">{user.username}</span>
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell><Skeleton className="h-10 w-40" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-48" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-8 w-8" /></TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                filteredUsers.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-9 w-9">
+                          <AvatarImage src={user.photo} alt={getDisplayName(user)} />
+                          <AvatarFallback>{user.prenom.charAt(0)}{user.nom.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div className="grid gap-0.5">
+                            <span className="font-semibold">{getDisplayName(user)}</span>
+                            <span className="text-xs text-muted-foreground">{user.username}</span>
+                        </div>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell className="capitalize">{user.role}</TableCell>
-                  <TableCell>
-                    <Badge variant={user.status === 'active' ? 'default' : 'secondary'} className={user.status === 'active' ? 'bg-green-600' : 'bg-gray-400'}>
-                      {user.status === 'active' ? 'Actif' : 'Inactif'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{user.createdAt}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Ouvrir le menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleEdit(user)}>Modifier</DropdownMenuItem>
-                        <DropdownMenuItem>Voir les détails</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(user)}>Supprimer</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
+                    </TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell className="capitalize">{user.role}</TableCell>
+                    <TableCell>
+                      <Badge variant={user.status === 'active' ? 'default' : 'secondary'} className={user.status === 'active' ? 'bg-green-600' : 'bg-gray-400'}>
+                        {user.status === 'active' ? 'Actif' : 'Inactif'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{user.createdAt}</TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button aria-haspopup="true" size="icon" variant="ghost">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Ouvrir le menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => handleEdit(user)}>Modifier</DropdownMenuItem>
+                          <DropdownMenuItem>Voir les détails</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(user)}>Supprimer</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>

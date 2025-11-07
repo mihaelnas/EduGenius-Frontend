@@ -41,7 +41,9 @@ const baseSchema = z.object({
   nom: z.string().min(1, { message: 'Le nom est requis.' }),
   username: z.string().min(2, { message: "Le nom d'utilisateur est requis." }).startsWith('@', { message: 'Doit commencer par @.' }),
   email: z.string().email({ message: 'Email invalide.' }),
-  password: z.string().min(8, { message: 'Au moins 8 caractères.' }),
+  // Password is not needed when an admin creates a user, let's make it optional or handle it differently
+  // For now, we will omit it from creation, as firebase auth is separate.
+  // password: z.string().min(8, { message: 'Au moins 8 caractères.' }),
   photo: z.string().url({ message: 'URL invalide.' }).optional().or(z.literal('')),
 });
 
@@ -70,13 +72,15 @@ const adminSchema = baseSchema.extend({
     role: z.literal('admin'),
 });
 
+// We can't create auth users from here directly. This form should only create the user document in firestore.
+// Auth user creation should be handled via the register page or a specific admin action.
 const formSchema = z.discriminatedUnion('role', [studentSchema, teacherSchema, adminSchema]);
 type FormValues = z.infer<typeof formSchema>;
 
 type AddUserDialogProps = {
     isOpen: boolean;
     setIsOpen: (isOpen: boolean) => void;
-    onUserAdded: (newUser: FormValues) => void;
+    onUserAdded: (newUser: Omit<AppUser, 'id' | 'status' | 'createdAt'>) => void;
 }
 
 const initialValues = {
@@ -85,7 +89,6 @@ const initialValues = {
   nom: '',
   username: '@',
   email: '',
-  password: '',
   photo: '',
   // Student fields
   matricule: '',
@@ -151,7 +154,7 @@ export function AddUserDialog({ isOpen, setIsOpen, onUserAdded }: AddUserDialogP
         <DialogHeader>
           <DialogTitle>Ajouter un nouvel utilisateur</DialogTitle>
           <DialogDescription>
-            Remplissez les informations pour créer un nouveau compte.
+            Remplissez les informations pour créer un nouveau profil utilisateur dans Firestore. L'utilisateur devra s'inscrire séparément pour créer son compte d'authentification.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -188,8 +191,7 @@ export function AddUserDialog({ isOpen, setIsOpen, onUserAdded }: AddUserDialogP
 
                         <FormField control={form.control} name="username" render={({ field }) => ( <FormItem><FormLabel>Nom d'utilisateur</FormLabel><FormControl><Input placeholder="@jeandupont" {...field} /></FormControl><FormMessage /></FormItem> )} />
                         <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>Email</FormLabel><FormControl><Input placeholder="nom@exemple.com" type="email" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="password" render={({ field }) => ( <FormItem><FormLabel>Mot de passe</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem> )} />
-
+                        
                         {role === 'student' && (
                             <>
                                 <FormField control={form.control} name="matricule" render={({ field }) => ( <FormItem><FormLabel>Matricule</FormLabel><FormControl><Input placeholder="E123456" {...field} /></FormControl><FormMessage /></FormItem> )} />
@@ -229,5 +231,3 @@ export function AddUserDialog({ isOpen, setIsOpen, onUserAdded }: AddUserDialogP
     </Dialog>
   );
 }
-
-    

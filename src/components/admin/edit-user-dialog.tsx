@@ -39,7 +39,6 @@ const baseSchema = z.object({
   nom: z.string().min(1, { message: 'Le nom est requis.' }),
   username: z.string().min(2, { message: "Le nom d'utilisateur est requis." }).startsWith('@', { message: 'Doit commencer par @.' }),
   email: z.string().email({ message: 'Email invalide.' }),
-  password: z.string().min(8, { message: 'Au moins 8 caractères.' }).optional().or(z.literal('')),
   photo: z.string().url({ message: 'URL invalide.' }).optional().or(z.literal('')),
   status: z.enum(['active', 'inactive']),
 });
@@ -96,16 +95,9 @@ export function EditUserDialog({ isOpen, setIsOpen, user, onUserUpdated }: EditU
   });
   
   function onSubmit(values: FormValues) {
-    // We remove password if it's empty to avoid overwriting it
-    const { password, ...rest } = values;
     const finalValues: AppUser = {
         ...user,
-        ...rest,
-        // This is a bit of a hack to make sure we have all fields for each user type
-        // in a real app, this would be handled by a proper API call.
-        ...(user.role === 'student' && values.role === 'student' ? { ...user, ...values } : {}),
-        ...(user.role === 'teacher' && values.role === 'teacher' ? { ...user, ...values } : {}),
-        ...(user.role === 'admin' && values.role === 'admin' ? { ...user, ...values } : {}),
+        ...values,
     };
     onUserUpdated(finalValues);
     setIsOpen(false);
@@ -175,7 +167,7 @@ export function EditUserDialog({ isOpen, setIsOpen, user, onUserUpdated }: EditU
 
                         <FormField control={form.control} name="username" render={({ field }) => ( <FormItem><FormLabel>Nom d'utilisateur</FormLabel><FormControl><Input placeholder="@jeandupont" {...field} /></FormControl><FormMessage /></FormItem> )} />
                         <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>Email</FormLabel><FormControl><Input placeholder="nom@exemple.com" type="email" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="password" render={({ field }) => ( <FormItem><FormLabel>Nouveau mot de passe (optionnel)</FormLabel><FormControl><Input type="password" {...field} placeholder="Laisser vide pour ne pas changer" /></FormControl><FormMessage /></FormItem> )} />
+                        
                         <FormField
                             control={form.control}
                             name="status"
