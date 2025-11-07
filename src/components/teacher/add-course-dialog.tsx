@@ -106,22 +106,26 @@ export function AddCourseDialog({ isOpen, setIsOpen, subjectId, onCourseAdded }:
                     <div key={field.id} className="flex gap-2 items-end p-3 border rounded-md">
                       <FormField control={form.control} name={`resources.${index}.type`} render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Type</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Choisir..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="pdf">PDF</SelectItem><SelectItem value="video">Vidéo</SelectItem><SelectItem value="link">Lien</SelectItem></SelectContent></Select><FormMessage /></FormItem> )} />
                       <FormField control={form.control} name={`resources.${index}.title`} render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Titre</FormLabel><FormControl><Input placeholder="Titre de la ressource" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                      <FormField control={form.control} name={`resources.${index}.url`} render={({ field }) => (
-                        <FormItem className="flex-1">
-                          <FormLabel>{resourceType === 'link' || resourceType === 'video' ? 'URL' : 'Fichier'}</FormLabel>
-                          <FormControl>
-                            {resourceType === 'link' || resourceType === 'video' ? (
+                      <FormField
+                        control={form.control}
+                        name={`resources.${index}.url`}
+                        render={({ field }) => (
+                          <FormItem className="flex-1">
+                            <FormLabel>{resourceType === 'link' || resourceType === 'video' ? 'URL' : 'Fichier'}</FormLabel>
+                            <FormControl>
+                              {resourceType === 'link' || resourceType === 'video' ? (
                                 <Input placeholder="https://..." {...field} />
-                            ) : (
+                              ) : (
                                 <Input
                                   type="file"
                                   {...urlProps}
                                 />
-                            )}
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )} />
+                              )}
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                       <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => remove(index)}><Trash2 className="h-4 w-4" /></Button>
                     </div>
                   );
