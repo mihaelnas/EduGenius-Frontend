@@ -9,7 +9,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
-import { Course } from '@/lib/placeholder-data';
 import { PlusCircle, Trash2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
@@ -17,7 +16,7 @@ const resourceSchema = z.object({
   id: z.string().optional(),
   type: z.enum(['pdf', 'video', 'link']),
   title: z.string().min(1, 'Le titre est requis.'),
-  url: z.string().url("Veuillez fournir une URL valide.").optional().or(z.literal('')),
+  url: z.string().url("Veuillez fournir une URL valide.").or(z.literal('')),
 });
 
 const formSchema = z.object({
@@ -26,19 +25,18 @@ const formSchema = z.object({
   resources: z.array(resourceSchema),
 });
 
-type FormValues = z.infer<typeof formSchema>;
+export type AddCourseFormValues = z.infer<typeof formSchema>;
 
 type AddCourseDialogProps = {
     isOpen: boolean;
     setIsOpen: (isOpen: boolean) => void;
-    onCourseAdded: (newCourse: Omit<Course, 'id' | 'teacherId' | 'createdAt'>) => Promise<void>;
-    subjectId: string;
+    onCourseAdded: (values: AddCourseFormValues) => Promise<void>;
     subjectName: string;
 }
 
-export function AddCourseDialog({ isOpen, setIsOpen, onCourseAdded, subjectId, subjectName }: AddCourseDialogProps) {
+export function AddCourseDialog({ isOpen, setIsOpen, onCourseAdded, subjectName }: AddCourseDialogProps) {
 
-  const form = useForm<FormValues>({
+  const form = useForm<AddCourseFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: '',
@@ -52,19 +50,8 @@ export function AddCourseDialog({ isOpen, setIsOpen, onCourseAdded, subjectId, s
     name: "resources"
   });
   
-  async function onSubmit(values: FormValues) {
-    const coursePayload: Omit<Course, 'id' | 'teacherId' | 'createdAt'> = {
-      ...values,
-      subjectId: subjectId,
-      subjectName: subjectName,
-      resources: values.resources.map(r => ({
-        ...r,
-        id: r.id || `res_${Date.now()}_${Math.random()}`,
-        url: r.url || ''
-      }))
-    };
-
-    await onCourseAdded(coursePayload);
+  async function onSubmit(values: AddCourseFormValues) {
+    await onCourseAdded(values);
     setIsOpen(false);
     form.reset();
   }

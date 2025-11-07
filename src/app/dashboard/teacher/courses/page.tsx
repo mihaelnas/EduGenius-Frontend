@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Course, Resource, Subject } from '@/lib/placeholder-data';
 import { BookOpen, PlusCircle, Paperclip, Video, Link as LinkIcon, Edit, Trash2, Eye } from 'lucide-react';
-import { AddCourseDialog } from '@/components/teacher/add-course-dialog';
+import { AddCourseDialog, AddCourseFormValues } from '@/components/teacher/add-course-dialog';
 import { EditCourseDialog } from '@/components/teacher/edit-course-dialog';
 import { DeleteConfirmationDialog } from '@/components/admin/delete-confirmation-dialog';
 import { useUser, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
@@ -39,7 +39,7 @@ function SubjectCourses({ subject }: { subject: Subject }) {
   const { toast } = useToast();
   
   const coursesQuery = useMemoFirebase(
-    () => query(collection(firestore, `courses`), where('subjectId', '==', subject.id)),
+    () => firestore ? query(collection(firestore, `courses`), where('subjectId', '==', subject.id)) : null,
     [firestore, subject.id]
   );
   const { data: courses, isLoading: isLoadingCourses } = useCollection<Course>(coursesQuery);
@@ -78,28 +78,33 @@ function SubjectCourses({ subject }: { subject: Subject }) {
     }
   };
 
-  const handleAddCourse = async (newCoursePayload: Omit<Course, 'id' | 'teacherId' | 'createdAt'>) => {
+  const handleAddCourse = async (values: AddCourseFormValues) => {
     if (!user) {
       toast({ variant: 'destructive', title: 'Erreur', description: 'Utilisateur non authentifié.' });
       return;
     }
     
-    const courseCollectionRef = collection(firestore, `courses`);
-    const courseDocRef = doc(courseCollectionRef);
-
-    const finalPayload: Course = {
-        id: courseDocRef.id,
-        ...newCoursePayload,
-        teacherId: user.uid,
-        createdAt: new Date().toISOString(),
-    };
+    const courseCollectionRef = collection(firestore, 'courses');
 
     try {
-      await setDoc(courseDocRef, finalPayload);
-      toast({
-        title: 'Cours ajouté',
-        description: `Le cours "${finalPayload.title}" a été créé avec succès.`,
-      });
+        const newCourse: Omit<Course, 'id'> = {
+            ...values,
+            subjectId: subject.id,
+            subjectName: subject.name,
+            teacherId: user.uid,
+            createdAt: new Date().toISOString(),
+            resources: values.resources.map(r => ({
+                ...r,
+                id: `res_${Date.now()}_${Math.random()}`,
+            }))
+        };
+        const docRef = await addDoc(courseCollectionRef, newCourse);
+        await updateDoc(docRef, { id: docRef.id });
+
+        toast({
+            title: 'Cours ajouté',
+            description: `Le cours "${values.title}" a été créé avec succès.`,
+        });
     } catch (error) {
       console.error("Failed to add course:", error);
       toast({
@@ -111,17 +116,16 @@ function SubjectCourses({ subject }: { subject: Subject }) {
   };
 
 
-  const handleUpdateCourse = async (updatedCourse: Course) => {
-    if (!updatedCourse.id) {
+  const handleUpdateCourse = async (updatedData: Course) => {
+     if (!updatedData.id) {
         toast({ variant: "destructive", title: "Erreur", description: "ID de cours manquant." });
         return;
     }
-    const courseDocRef = doc(firestore, `courses`, updatedCourse.id);
-    const { id, ...courseData } = updatedCourse;
-    await updateDoc(courseDocRef, courseData);
+    const courseDocRef = doc(firestore, `courses`, updatedData.id);
+    await updateDoc(courseDocRef, updatedData);
     toast({
       title: 'Cours modifié',
-      description: `Le cours "${updatedCourse.title}" a été mis à jour.`,
+      description: `Le cours "${updatedData.title}" a été mis à jour.`,
     });
   };
 
@@ -196,7 +200,6 @@ function SubjectCourses({ subject }: { subject: Subject }) {
         isOpen={isAddCourseDialogOpen}
         setIsOpen={setIsAddCourseDialogOpen}
         onCourseAdded={handleAddCourse}
-        subjectId={subject.id}
         subjectName={subject.name}
       />
 
@@ -275,5 +278,3 @@ export default function TeacherCoursesPage() {
     </>
   );
 }
-
-    
