@@ -5,21 +5,15 @@ import { AdminDashboard } from '@/components/dashboards/admin-dashboard';
 import { TeacherDashboard } from '@/components/dashboards/teacher-dashboard';
 import { StudentDashboard } from '@/components/dashboards/student-dashboard';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import { AppUser, Class, Subject } from '@/lib/placeholder-data';
-import { users as initialUsers, classes as initialClasses, subjects as initialSubjects } from '@/lib/placeholder-data';
+import { useUser, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
+import { doc, getDoc, collection } from 'firebase/firestore';
+import type { AppUser, Class, Subject } from '@/lib/placeholder-data';
 
 
 export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const [userRole, setUserRole] = React.useState<string | null>(null);
-  
-  // These states are now managed here to make dashboards dynamic
-  const [users, setUsers] = React.useState<AppUser[]>(initialUsers);
-  const [classes, setClasses] = React.useState<Class[]>(initialClasses);
-  const [subjects, setSubjects] = React.useState<Subject[]>(initialSubjects);
 
   React.useEffect(() => {
     if (user) {
@@ -34,9 +28,18 @@ export default function DashboardPage() {
       });
     }
   }, [user, firestore]);
+  
+  const usersQuery = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+  const classesQuery = useMemoFirebase(() => collection(firestore, 'classes'), [firestore]);
+  const subjectsQuery = useMemoFirebase(() => collection(firestore, 'subjects'), [firestore]);
+
+  const { data: users, isLoading: usersLoading } = useCollection<AppUser>(usersQuery);
+  const { data: classes, isLoading: classesLoading } = useCollection<Class>(classesQuery);
+  const { data: subjects, isLoading: subjectsLoading } = useCollection<Subject>(subjectsQuery);
+
 
   const renderDashboard = () => {
-    if (isUserLoading || !userRole) {
+    if (isUserLoading || !userRole || usersLoading || classesLoading || subjectsLoading) {
        return (
           <>
             <Skeleton className="h-8 w-1/2" />
@@ -56,7 +59,7 @@ export default function DashboardPage() {
 
     switch (userRole) {
       case 'admin':
-        return <AdminDashboard userName={user?.displayName} users={users} classes={classes} subjects={subjects} />;
+        return <AdminDashboard userName={user?.displayName} users={users || []} classes={classes || []} subjects={subjects || []} />;
       case 'teacher':
         return <TeacherDashboard userName={user?.displayName} />;
       case 'student':
