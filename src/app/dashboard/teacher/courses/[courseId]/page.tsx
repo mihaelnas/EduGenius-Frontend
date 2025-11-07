@@ -2,79 +2,141 @@
 'use client';
 
 import React from 'react';
-import { useParams } from 'next/navigation';
+import Link from 'next/link';
+import {
+  Course,
+  Resource,
+} from '@/lib/placeholder-data';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Paperclip, Video, Link as LinkIcon, ChevronRight, ArrowLeft } from 'lucide-react';
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import type { Course } from '@/lib/placeholder-data';
 import { Skeleton } from '@/components/ui/skeleton';
+import { notFound, useParams } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+
+const ResourceIcon = ({ type }: { type: Resource['type'] }) => {
+  switch (type) {
+    case 'pdf':
+      return <Paperclip className="h-5 w-5 text-primary" />;
+    case 'video':
+      return <Video className="h-5 w-5 text-primary" />;
+    case 'link':
+      return <LinkIcon className="h-5 w-5 text-primary" />;
+    default:
+      return null;
+  }
+};
+
+function CourseDetailContent({ courseId }: { courseId: string }) {
+    const firestore = useFirestore();
+    
+    const courseDocRef = useMemoFirebase(() => {
+        return doc(firestore, 'courses', courseId);
+    }, [firestore, courseId]);
+
+    const { data: course, isLoading: isLoadingCourse } = useDoc<Course>(courseDocRef);
+
+    if (isLoadingCourse) {
+        return (
+            <div>
+                <Skeleton className="h-9 w-40 mb-6" />
+                <Card>
+                    <CardHeader>
+                        <Skeleton className="h-4 w-1/4 mb-2" />
+                        <Skeleton className="h-8 w-3/4" />
+                        <Skeleton className="h-4 w-1/3" />
+                    </CardHeader>
+                    <CardContent>
+                        <Skeleton className="h-20 w-full" />
+                        <div className="mt-8">
+                            <Skeleton className="h-6 w-1/3 mb-4" />
+                            <div className="space-y-3">
+                                <Skeleton className="h-12 w-full" />
+                                <Skeleton className="h-12 w-full" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
+
+    if (!course) {
+        notFound();
+        return null; 
+    }
+
+    return (
+        <div>
+            <div className="mb-6">
+                <Button asChild variant="outline" size="sm">
+                <Link href="/dashboard/teacher/courses">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Retour à la liste
+                </Link>
+                </Button>
+            </div>
+
+            <Card>
+                <CardHeader>
+                <p className="text-sm font-semibold text-primary">{course.subjectName}</p>
+                <CardTitle className="text-3xl font-headline">{course.title}</CardTitle>
+                {course.createdAt && (
+                    <CardDescription>Publié le {new Date(course.createdAt).toLocaleDateString('fr-FR')}</CardDescription>
+                )}
+                </CardHeader>
+                <CardContent>
+                <div className="prose dark:prose-invert max-w-none">
+                    <p>{course.content}</p>
+                </div>
+
+                {course.resources && course.resources.length > 0 && (
+                    <div className="mt-8">
+                    <h3 className="text-xl font-semibold mb-4 font-headline">Ressources du cours</h3>
+                    <div className="space-y-3">
+                        {course.resources.map((resource, index) => (
+                        <a
+                            key={resource.id || index}
+                            href={resource.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-between gap-3 p-4 border rounded-lg hover:bg-muted transition-colors"
+                        >
+                            <div className="flex items-center gap-4">
+                                <ResourceIcon type={resource.type} />
+                                <span className="font-medium">{resource.title}</span>
+                            </div>
+                            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                        </a>
+                        ))}
+                    </div>
+                    </div>
+                )}
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
 
 export default function TeacherCourseDetailPage() {
   const params = useParams();
   const courseId = params.courseId as string;
-  const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
-
-  const courseDocRef = useMemoFirebase(() => {
-    // Only create the reference if we have the necessary IDs
-    if (!firestore || !courseId || !user?.uid) return null;
-    return doc(firestore, 'courses', courseId);
-  }, [firestore, courseId, user?.uid]);
-
-  const { data: course, isLoading: isLoadingCourse, error } = useDoc<Course>(courseDocRef);
 
   if (isUserLoading) {
     return (
-        <div>
-            <h1>Authentification en cours...</h1>
-            <Skeleton className="h-40 w-full mt-4" />
-        </div>
-    );
+      <div>
+        <Skeleton className="h-9 w-40 mb-6" />
+        <Skeleton className="w-full h-[400px]" />
+      </div>
+    )
   }
 
-  return (
-    <div className="p-4 bg-card rounded-lg font-mono text-sm">
-        <h1 className="text-xl font-bold font-sans mb-4">Page de Diagnostic du Cours</h1>
-        
-        <div className="mb-2">
-            <strong>ID du cours (depuis l'URL):</strong> {courseId || "Non trouvé"}
-        </div>
-        <div className="mb-2">
-            <strong>ID de l'utilisateur connecté:</strong> {user?.uid || "Non connecté"}
-        </div>
-         <div className="mb-4">
-            <strong>Référence du document Firestore:</strong> {courseDocRef ? courseDocRef.path : "N/A (en attente des IDs)"}
-        </div>
+  if (!user) {
+    // This case should be handled by the layout, but as a safeguard
+    return <p>Veuillez vous connecter pour voir ce cours.</p>
+  }
 
-        <hr className="my-4 border-dashed" />
-
-        <h2 className="text-lg font-bold font-sans mb-2">État de la récupération des données :</h2>
-        <div className="mb-2">
-            <strong>Chargement (isLoading): </strong> 
-            <span className={isLoadingCourse ? 'text-yellow-400' : 'text-green-400'}>
-                {JSON.stringify(isLoadingCourse)}
-            </span>
-        </div>
-        <div className="mb-2">
-            <strong>Erreur: </strong>
-             <span className={error ? 'text-red-400' : 'text-green-400'}>
-                {error ? error.message : "null"}
-             </span>
-        </div>
-        
-        <hr className="my-4 border-dashed" />
-
-        <h2 className="text-lg font-bold font-sans mb-2">Données brutes du cours :</h2>
-        <pre className="p-2 border rounded bg-background whitespace-pre-wrap">
-            {JSON.stringify(course, null, 2) || "Données non disponibles"}
-        </pre>
-        
-        {course && (
-             <div className="mt-4 border-t pt-4">
-                <h2 className="text-lg font-bold font-sans mb-2">Champs spécifiques :</h2>
-                <p><strong>Titre:</strong> {course.title}</p>
-                <p><strong>Contenu:</strong> {course.content}</p>
-             </div>
-        )}
-    </div>
-  );
+  return <CourseDetailContent courseId={courseId} />;
 }
