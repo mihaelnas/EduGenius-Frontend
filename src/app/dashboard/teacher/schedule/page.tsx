@@ -8,11 +8,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { PlusCircle, User, Video } from 'lucide-react';
 import { fr } from 'date-fns/locale';
 import { format } from 'date-fns';
-import { schedule as initialSchedule, ScheduleEvent, users, getDisplayName, AppUser } from '@/lib/placeholder-data';
+import { ScheduleEvent, getDisplayName, AppUser } from '@/lib/placeholder-data';
 import { AddEventDialog } from '@/components/teacher/add-event-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
+import { useUser, useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
+import { collection, query, where, doc } from 'firebase/firestore';
 
 const statusVariant: { [key in ScheduleEvent['status']]: 'default' | 'secondary' | 'destructive' | 'outline' } = {
   'planifié': 'default',
@@ -23,17 +25,42 @@ const statusVariant: { [key in ScheduleEvent['status']]: 'default' | 'secondary'
 
 export default function TeacherSchedulePage() {
   const [date, setDate] = React.useState<Date | undefined>(undefined);
-  const [schedule, setSchedule] = React.useState<ScheduleEvent[]>(initialSchedule);
   const [isAddEventDialogOpen, setIsAddEventDialogOpen] = React.useState(false);
+  const { user } = useUser();
+  const firestore = useFirestore();
 
   React.useEffect(() => {
     setDate(new Date());
   }, []);
+  
+  const scheduleQuery = useMemoFirebase(() => 
+    user ? query(collection(firestore, 'schedule'), where('teacherId', '==', user.uid)) : null,
+    [user, firestore]
+  );
+  const { data: schedule, isLoading: isLoadingSchedule } = useCollection<ScheduleEvent>(scheduleQuery);
+  
+  const usersCollectionRef = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+  const { data: users, isLoading: isLoadingUsers } = useCollection<AppUser>(usersCollectionRef);
 
-  const getTeacherById = (id: string): AppUser | undefined => users.find(u => u.id === id);
+  const getTeacherById = (id: string): AppUser | undefined => users?.find(u => u.id === id);
 
   const selectedDateStr = date ? format(date, 'yyyy-MM-dd') : '';
-  const todaysEvents = schedule.filter(event => event.date === selectedDateStr);
+  const todaysEvents = React.useMemo(() => 
+    (schedule || []).filter(event => event.date === selectedDateStr),
+    [schedule, selectedDateStr]
+  );
+  
+  const handleEventAdded = (newEventData: Omit<ScheduleEvent, 'id' | 'teacherId'>) => {
+    if (!user) return;
+    const scheduleCollectionRef = collection(firestore, 'schedule');
+    const newEvent = {
+      ...newEventData,
+      teacherId: user.uid,
+    };
+    addDocumentNonBlocking(scheduleCollectionRef, newEvent);
+  };
+
+  const isLoading = isLoadingSchedule || isLoadingUsers;
 
   return (
     <>
@@ -55,7 +82,12 @@ export default function TeacherSchedulePage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {todaysEvents.length > 0 ? (
+                {isLoading ? (
+                  <>
+                    <Skeleton className="h-24 w-full" />
+                    <Skeleton className="h-24 w-full" />
+                  </>
+                ) : todaysEvents.length > 0 ? (
                   todaysEvents.map((item) => {
                     const teacher = getTeacherById(item.teacherId);
                     return (
@@ -118,7 +150,7 @@ export default function TeacherSchedulePage() {
       <AddEventDialog 
         isOpen={isAddEventDialogOpen}
         setIsOpen={setIsAddEventDialogOpen}
-        onEventAdded={(newEvent) => setSchedule(prev => [...prev, newEvent])}
+        onEventAdded={handleEventAdded}
       />
     </>
   );

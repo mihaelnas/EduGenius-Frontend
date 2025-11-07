@@ -10,11 +10,9 @@ import { useToast } from '@/hooks/use-toast';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { ScheduleEvent, users, getDisplayName } from '@/lib/placeholder-data';
+import { ScheduleEvent, getDisplayName } from '@/lib/placeholder-data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-
-// Mock: assumes the logged in teacher is Alice Johnson (id: usr_2)
-const TEACHER_ID = 'usr_2';
+import { useUser } from '@/firebase';
 
 const formSchema = z.object({
   date: z.string().min(1, 'La date est requise.'),
@@ -22,23 +20,24 @@ const formSchema = z.object({
   endTime: z.string().min(1, 'L\'heure de fin est requise.'),
   subject: z.string().min(1, 'La matière est requise.'),
   class: z.string().min(1, 'La classe est requise.'),
-  teacherId: z.string(),
   type: z.enum(['en-salle', 'en-ligne']),
   status: z.enum(['planifié', 'reporté', 'annulé', 'effectué']),
   conferenceLink: z.string().url({ message: "Veuillez entrer une URL valide." }).optional().or(z.literal('')),
 });
 
+type FormValues = z.infer<typeof formSchema>;
+
 type AddEventDialogProps = {
     isOpen: boolean;
     setIsOpen: (isOpen: boolean) => void;
-    onEventAdded: (newEvent: ScheduleEvent) => void;
+    onEventAdded: (newEvent: FormValues) => void;
 }
 
 export function AddEventDialog({ isOpen, setIsOpen, onEventAdded }: AddEventDialogProps) {
   const { toast } = useToast();
-  const teacher = users.find(u => u.id === TEACHER_ID);
+  const { user } = useUser();
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       date: '',
@@ -48,19 +47,14 @@ export function AddEventDialog({ isOpen, setIsOpen, onEventAdded }: AddEventDial
       class: '',
       type: 'en-salle',
       status: 'planifié',
-      teacherId: TEACHER_ID,
       conferenceLink: '',
     },
   });
 
   const eventType = form.watch('type');
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    const newEvent: ScheduleEvent = {
-      id: `evt_${Date.now()}`,
-      ...values,
-    };
-    onEventAdded(newEvent);
+  function onSubmit(values: FormValues) {
+    onEventAdded(values);
     toast({
       title: 'Événement ajouté',
       description: `Le cours de ${values.subject} a été ajouté à l'emploi du temps.`,
@@ -68,11 +62,10 @@ export function AddEventDialog({ isOpen, setIsOpen, onEventAdded }: AddEventDial
     setIsOpen(false);
     form.reset();
   }
-
-  return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-        setIsOpen(open);
-        if (!open) {
+  
+  const handleOpenChange = (open: boolean) => {
+      setIsOpen(open);
+      if (!open) {
           form.reset({
             date: '',
             startTime: '',
@@ -81,11 +74,13 @@ export function AddEventDialog({ isOpen, setIsOpen, onEventAdded }: AddEventDial
             class: '',
             type: 'en-salle',
             status: 'planifié',
-            teacherId: TEACHER_ID,
             conferenceLink: ''
           });
-        }
-    }}>
+      }
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Ajouter un événement</DialogTitle>
@@ -103,20 +98,13 @@ export function AddEventDialog({ isOpen, setIsOpen, onEventAdded }: AddEventDial
             <FormField control={form.control} name="subject" render={({ field }) => ( <FormItem><FormLabel>Matière</FormLabel><FormControl><Input placeholder="Ex: Mathématiques" {...field} /></FormControl><FormMessage /></FormItem> )} />
             <FormField control={form.control} name="class" render={({ field }) => ( <FormItem><FormLabel>Classe</FormLabel><FormControl><Input placeholder="Ex: Licence 3 - IG" {...field} /></FormControl><FormMessage /></FormItem> )} />
             
-            {teacher && (
-                <FormField
-                    control={form.control}
-                    name="teacherId"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Enseignant</FormLabel>
-                        <FormControl>
-                            <Input {...field} value={getDisplayName(teacher)} disabled />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
+            {user && (
+                <FormItem>
+                    <FormLabel>Enseignant</FormLabel>
+                    <FormControl>
+                        <Input value={user.displayName || user.email || ''} disabled />
+                    </FormControl>
+                </FormItem>
             )}
             
              <div className="grid grid-cols-2 gap-4">
