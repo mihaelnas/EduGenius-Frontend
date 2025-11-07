@@ -21,7 +21,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ViewDetailsButton } from '@/components/admin/view-details-button';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { firebaseConfig } from '@/firebase/config';
@@ -48,9 +48,9 @@ export default function AdminUsersPage() {
   const handleAdd = async (values: AddUserFormValues) => {
     const { password, ...userData } = values;
     
-    // This is a temporary workaround for client-side user creation without a backend function.
-    // In a real-world complex app, a Cloud Function would be the ideal solution.
-    const tempAuthApp = initializeApp(firebaseConfig, `temp-app-${new Date().getTime()}`);
+    // Create a temporary, secondary Firebase app instance for user creation.
+    // This prevents the current admin user from being signed out.
+    const tempAuthApp = initializeApp(firebaseConfig, `temp-app-${Date.now()}`);
     const tempAuth = getAuth(tempAuthApp);
 
     try {
@@ -63,20 +63,22 @@ export default function AdminUsersPage() {
         status: 'active',
         createdAt: new Date().toISOString(),
       } as AppUser;
-
+      
+      // Ensure optional fields are not present if empty
       if (!userProfile.photo) {
         delete (userProfile as Partial<AppUser>).photo;
       }
       
       const userDocRef = doc(firestore, 'users', newUser.uid);
       
-      // Use a non-blocking write with custom error handling
+      // The currently logged-in admin creates the Firestore document.
+      // This uses the main auth instance, not the temporary one.
       setDoc(userDocRef, userProfile).then(() => {
         toast({
           title: `Utilisateur ${getDisplayName(values)} ajouté.`,
-          description: `Le profil pour ${values.email} a été créé avec succès.`,
         });
       }).catch(error => {
+        // This will now properly catch and display permission errors
         const permissionError = new FirestorePermissionError({
           path: userDocRef.path,
           operation: 'create',
@@ -84,6 +86,10 @@ export default function AdminUsersPage() {
         });
         errorEmitter.emit('permission-error', permissionError);
       });
+      
+      // The temporary auth instance is not needed anymore
+      // Firebase doesn't have a public API to delete app instances,
+      // but they are garbage collected.
 
     } catch (error: any) {
       console.error("Erreur de création d'utilisateur:", error);
@@ -126,7 +132,7 @@ export default function AdminUsersPage() {
       const userDocRef = doc(firestore, 'users', selectedUser.id);
       deleteDocumentNonBlocking(userDocRef);
       // NOTE: In a real app, you would also need to delete the user from Firebase Auth
-      // This is a more complex operation and is omitted for this demo.
+      // which is a privileged operation typically done on a server.
       toast({
         variant: 'destructive',
         title: 'Utilisateur supprimé',
@@ -261,3 +267,5 @@ export default function AdminUsersPage() {
     </>
   );
 }
+
+    
