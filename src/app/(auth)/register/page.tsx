@@ -110,9 +110,8 @@ export default function RegisterPage() {
         handleCodeInApp: true,
       };
       await sendEmailVerification(user, actionCodeSettings);
-      // --- End of modification ---
 
-      // Sign out the user immediately after registration
+      // Sign out the user immediately after sending the email
       await signOut(auth);
 
       toast({
