@@ -90,7 +90,7 @@ export default function RegisterPage() {
         email: values.email,
         username: values.username,
         role: 'student',
-        status: 'active',
+        status: 'inactive',
         createdAt: new Date().toISOString(),
       };
       
@@ -100,8 +100,9 @@ export default function RegisterPage() {
       await signOut(auth);
 
       toast({
-        title: 'Inscription réussie',
-        description: 'Votre compte a été créé. Vous pouvez maintenant vous connecter.',
+        title: 'Inscription réussie !',
+        description: "Votre compte a été créé et est en attente de validation par un administrateur.",
+        duration: 5000,
       });
       router.push('/login');
     } catch (error: any) {

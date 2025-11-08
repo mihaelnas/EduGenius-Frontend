@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -48,14 +49,14 @@ const baseSchema = z.object({
 
 const studentSchema = baseSchema.extend({
   role: z.literal('student'),
-  matricule: z.string().min(1, { message: 'Matricule requis.' }),
-  dateDeNaissance: z.string().min(1, { message: 'Date de naissance requise.' }),
-  lieuDeNaissance: z.string().min(1, { message: 'Lieu de naissance requis.' }),
-  genre: z.enum(['Homme', 'Femme']),
+  matricule: z.string().optional().or(z.literal('')),
+  dateDeNaissance: z.string().optional().or(z.literal('')),
+  lieuDeNaissance: z.string().optional().or(z.literal('')),
+  genre: z.enum(['Homme', 'Femme']).optional(),
   telephone: z.string().optional().or(z.literal('')),
   adresse: z.string().optional().or(z.literal('')),
-  niveau: z.enum(['L1', 'L2', 'L3', 'M1', 'M2']),
-  filiere: z.enum(['IG', 'GB', 'ASR', 'GID', 'OCC']),
+  niveau: z.enum(['L1', 'L2', 'L3', 'M1', 'M2']).optional(),
+  filiere: z.enum(['IG', 'GB', 'ASR', 'GID', 'OCC']).optional(),
 });
 
 const teacherSchema = baseSchema.extend({
@@ -96,8 +97,16 @@ export function EditUserDialog({ isOpen, setIsOpen, user, onUserUpdated }: EditU
         photo: user.photo ?? '',
         telephone: (user as any).telephone ?? '',
         adresse: (user as any).adresse ?? '',
+        // Student specific
+        matricule: (user as any).matricule ?? '',
+        dateDeNaissance: (user as any).dateDeNaissance ?? '',
+        lieuDeNaissance: (user as any).lieuDeNaissance ?? '',
+        niveau: (user as any).niveau ?? undefined,
+        filiere: (user as any).filiere ?? undefined,
+        // Teacher specific
         emailPro: (user as any).emailPro ?? '',
         specialite: (user as any).specialite ?? '',
+        // General optional
         genre: (user as any).genre ?? undefined,
       };
       form.reset(defaultValues);
@@ -226,7 +235,7 @@ export function EditUserDialog({ isOpen, setIsOpen, user, onUserUpdated }: EditU
                             )}
                         />
 
-                        {role === 'student' && 'matricule' in form.getValues() && (
+                        {role === 'student' && (
                             <>
                                 <FormField control={form.control} name="matricule" render={({ field }) => ( <FormItem><FormLabel>Matricule</FormLabel><FormControl><Input placeholder="E123456" {...field} /></FormControl><FormMessage /></FormItem> )} />
                                 <div className="grid grid-cols-2 gap-4">
@@ -243,7 +252,7 @@ export function EditUserDialog({ isOpen, setIsOpen, user, onUserUpdated }: EditU
                             </>
                         )}
 
-                        {role === 'teacher' && 'specialite' in form.getValues() && (
+                        {role === 'teacher' && (
                             <>
                                 <FormField control={form.control} name="emailPro" render={({ field }) => ( <FormItem><FormLabel>Email Professionnel</FormLabel><FormControl><Input placeholder="nom@univ.edu" type="email" {...field} /></FormControl><FormMessage /></FormItem> )} />
                                 <FormField control={form.control} name="genre" render={({ field }) => ( <FormItem><FormLabel>Genre</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Sélectionner..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="Homme">Homme</SelectItem><SelectItem value="Femme">Femme</SelectItem></SelectContent></Select><FormMessage /></FormItem> )} />
