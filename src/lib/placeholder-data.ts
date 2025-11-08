@@ -25,8 +25,8 @@ export type Student = User & {
 
 export type Teacher = User & {
   role: 'teacher';
-  emailPro: string;
-  specialite: string;
+  emailPro?: string;
+  specialite?: string;
 };
 
 export type Admin = User & {
@@ -69,7 +69,7 @@ export type Course = {
   title: string;
   content: string;
   subjectId: string;
-  subjectName: string; // Add subjectName to the course
+  subjectName: string;
   teacherId: string;
   resources: Resource[];
   createdAt: string;

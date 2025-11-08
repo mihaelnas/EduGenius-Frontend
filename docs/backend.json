@@ -25,21 +25,21 @@
           "format": "email"
         },
         "username": {
-            "type": "string",
-            "description": "The user's unique username."
+          "type": "string",
+          "description": "The user's unique username."
         },
         "role": {
           "type": "string",
           "description": "The role of the user (e.g., student, teacher, administrator)."
         },
         "status": {
-            "type": "string",
-            "description": "The status of the user's account (e.g., active, inactive)."
+          "type": "string",
+          "description": "The status of the user's account (e.g., active, inactive)."
         },
         "createdAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "The timestamp when the user account was created."
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the user account was created."
         }
       },
       "required": [
@@ -72,41 +72,40 @@
           "description": "A description of the class."
         },
         "teacherIds": {
-            "type": "array",
-            "description": "List of teacher IDs assigned to the class.",
-            "items": {
-                "type": "string"
-            }
+          "type": "array",
+          "description": "List of teacher IDs assigned to the class.",
+          "items": {
+            "type": "string"
+          }
         },
         "studentIds": {
-            "type": "array",
-            "description": "List of student IDs enrolled in the class.",
-            "items": {
-                "type": "string"
-            }
+          "type": "array",
+          "description": "List of student IDs enrolled in the class.",
+          "items": {
+            "type": "string"
+          }
         },
         "createdAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "The timestamp when the class was created."
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the class was created."
         },
         "niveau": {
-            "type": "string",
-            "description": "The academic level of the class (e.g., 'L1', 'M2')."
+          "type": "string",
+          "description": "The academic level of the class (e.g., 'L1', 'M2')."
         },
         "filiere": {
-            "type": "string",
-            "description": "The academic track or field of study."
+          "type": "string",
+          "description": "The academic track or field of study."
         },
         "anneeScolaire": {
-            "type": "string",
-            "description": "The academic year (e.g., '2023-2024')."
+          "type": "string",
+          "description": "The academic year (e.g., '2023-2024')."
         }
       },
       "required": [
         "id",
         "name",
-        "description",
         "teacherIds",
         "studentIds",
         "createdAt",
@@ -129,9 +128,19 @@
           "type": "string",
           "description": "The name of the subject (e.g., 'Mathematics', 'History')."
         },
-        "description": {
+        "credit": {
+          "type": "number",
+          "description": "Number of credits for the subject."
+        },
+        "semestre": {
           "type": "string",
-          "description": "A description of the subject."
+          "enum": ["S1", "S2"],
+          "description": "The semester the subject is taught in."
+        },
+        "photo": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL of a photo representing the subject."
         },
         "teacherId": {
           "type": "string",
@@ -141,7 +150,8 @@
       "required": [
         "id",
         "name",
-        "description"
+        "credit",
+        "semestre"
       ]
     },
     "Course": {
@@ -157,6 +167,10 @@
         "subjectId": {
           "type": "string",
           "description": "Reference to Subject. (Relationship: Subject 1:N Course)"
+        },
+        "subjectName": {
+          "type": "string",
+          "description": "Denormalized name of the subject for easy display."
         },
         "teacherId": {
           "type": "string",
@@ -174,6 +188,7 @@
       "required": [
         "id",
         "subjectId",
+        "subjectName",
         "teacherId",
         "title",
         "content"
@@ -389,5 +404,3 @@
     "reasoning": "The Firestore data structure is designed to support EduGenius's role-based access control and feature set, focusing on Authorization Independence and Structural Segregation.\n\n**Authorization Independence:** Access control is enforced without relying on hierarchical `get()` calls. The key is denormalization. For example, the `Course` collection is at the root level, and each course document contains a `teacherId`. This allows security rules to authorize writes directly on the course document without fetching the parent `Subject` document.\n\n**Structural Segregation:**  Data with differing access requirements are stored in separate collections. User data, accessible only to the user and admins, is stored under `/users/{userId}`. Class, Subject and Course data are stored at the root level. All documents within a collection share the same security rules, simplifying rule definition.\n\n**QAPs Support:** List operations are secured by the structure. Listing users is restricted based on admin roles (checking the existence of `/roles_admin/{userId}`).  Classes, Subjects and Courses can be listed based on the user's role and explicit permissions defined using security rules within each collection.\n"
   }
 }
-
-    
