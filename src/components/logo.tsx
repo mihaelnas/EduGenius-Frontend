@@ -1,9 +1,15 @@
+'use client';
+
 import Link from 'next/link';
 import { GraduationCap } from 'lucide-react';
+import { useUser } from '@/firebase';
 
 export function Logo() {
+  const { user } = useUser();
+  const href = user ? '/dashboard' : '/';
+
   return (
-    <Link href="/" className="flex items-center gap-2 group" prefetch={false}>
+    <Link href={href} className="flex items-center gap-2 group" prefetch={false}>
       <div className="p-2 bg-primary group-hover:bg-accent rounded-lg transition-colors">
         <GraduationCap className="h-6 w-6 text-primary-foreground" />
       </div>
