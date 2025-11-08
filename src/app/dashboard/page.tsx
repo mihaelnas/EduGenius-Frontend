@@ -8,7 +8,7 @@ import { StudentDashboard } from '@/components/dashboards/student-dashboard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUser, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
 import { doc, getDoc, collection, query, where, getDocs, limit, orderBy } from 'firebase/firestore';
-import type { AppUser, Class, Subject, ScheduleEvent, Course } from '@/lib/placeholder-data';
+import type { AppUser, Class, Subject, Course } from '@/lib/placeholder-data';
 
 
 export default function DashboardPage() {
@@ -126,11 +126,13 @@ export default function DashboardPage() {
         const coursesQuery = query(
             collection(firestore, 'courses'),
             where('subjectId', 'in', studentSubjectIds),
-            orderBy('createdAt', 'desc'),
-            limit(3)
+            limit(10) // Fetch a bit more to sort from
         );
         const coursesSnapshot = await getDocs(coursesQuery);
-        const studentRecentCourses = coursesSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Course));
+        const studentRecentCourses = coursesSnapshot.docs
+            .map(doc => ({ ...doc.data(), id: doc.id } as Course))
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .slice(0, 3);
         setRecentCourses(studentRecentCourses);
       } else {
         setRecentCourses([]);
