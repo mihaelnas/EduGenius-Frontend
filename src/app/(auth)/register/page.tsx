@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -25,7 +24,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth, useFirestore } from '@/firebase';
+import { useAuth, useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { createUserWithEmailAndPassword, sendEmailVerification, signOut, ActionCodeSettings } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import React from 'react';
@@ -89,13 +88,21 @@ export default function RegisterPage() {
         lastName: values.lastName,
         email: values.email,
         username: values.username,
-        role: 'student',
-        status: 'inactive',
+        role: 'student' as const,
+        status: 'inactive' as const,
         createdAt: new Date().toISOString(),
       };
       
       const userDocRef = doc(firestore, 'users', user.uid);
-      await setDoc(userDocRef, userProfile);
+      
+      setDoc(userDocRef, userProfile).catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: userDocRef.path,
+          operation: 'create',
+          requestResourceData: userProfile,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
 
       // --- Send verification email with custom redirect ---
       const actionCodeSettings: ActionCodeSettings = {
@@ -122,7 +129,6 @@ export default function RegisterPage() {
             description: 'Cette adresse e-mail est déjà utilisée. Veuillez vous connecter.',
         });
       } else {
-        console.error("Registration Error:", error);
         toast({
             variant: 'destructive',
             title: 'Échec de l\'inscription',
