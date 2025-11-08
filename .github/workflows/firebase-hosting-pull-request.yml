@@ -1,0 +1,45 @@
+
+name: Deploy to Firebase App Hosting
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Linting
+        run: npm run lint
+
+      - name: Run Type Checking
+        run: npm run typecheck
+        
+      - name: Build application
+        run: npm run build
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      - name: Deploy to Firebase App Hosting
+        uses: google-github-actions/deploy-apphosting@v0
+        with:
+          project_id: '${{ secrets.GCP_PROJECT_ID }}'
+          location: 'us-central1' # Remplacez par votre région si nécessaire
+
