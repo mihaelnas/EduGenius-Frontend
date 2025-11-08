@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -116,7 +117,9 @@ export default function RegisterPage() {
         description: "Un e-mail de vérification a été envoyé. Veuillez consulter votre boîte de réception pour valider votre adresse e-mail.",
         duration: 10000,
       });
+
       router.push('/login');
+
     } catch (error: any) {
       if (error.code === 'auth/email-already-in-use') {
         toast({
