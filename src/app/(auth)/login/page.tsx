@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -26,9 +25,11 @@ import {
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useFirestore } from '@/firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import React from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import { doc, getDoc } from 'firebase/firestore';
+import { AppUser } from '@/lib/placeholder-data';
 
 
 const formSchema = z.object({
@@ -53,13 +54,55 @@ export default function LoginPage() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
+      const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
+      const user = userCredential.user;
 
+      // 1. Vérifier si l'e-mail est validé
+      if (!user.emailVerified) {
+        toast({
+          variant: 'destructive',
+          title: 'E-mail non vérifié',
+          description: "Veuillez vérifier votre adresse e-mail avant de vous connecter. Consultez l'e-mail que nous vous avons envoyé.",
+          duration: 7000
+        });
+        await signOut(auth); // Déconnecter l'utilisateur
+        return;
+      }
+
+      // 2. Vérifier le statut de l'utilisateur dans Firestore
+      const userDocRef = doc(firestore, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (!userDoc.exists()) {
+         toast({
+            variant: 'destructive',
+            title: 'Échec de la connexion',
+            description: "Profil utilisateur non trouvé. Veuillez contacter l'administration.",
+        });
+        await signOut(auth);
+        return;
+      }
+      
+      const userProfile = userDoc.data() as AppUser;
+
+      if (userProfile.status !== 'active') {
+         toast({
+            variant: 'destructive',
+            title: 'Compte en attente',
+            description: "Votre compte est en attente de validation par un administrateur.",
+            duration: 7000
+        });
+        await signOut(auth);
+        return;
+      }
+      
+      // Si tout est bon, on continue
       toast({
         title: 'Connexion réussie',
         description: 'Redirection vers votre tableau de bord...',
       });
       router.push('/dashboard');
+
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -123,8 +166,8 @@ export default function LoginPage() {
             />
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button className="w-full" type="submit">
-              Se connecter
+            <Button className="w-full" type="submit" disabled={form.formState.isSubmitting}>
+               {form.formState.isSubmitting ? 'Connexion...' : 'Se connecter'}
             </Button>
             <div className="text-center text-sm text-muted-foreground">
               Vous n'avez pas de compte ?{' '}
