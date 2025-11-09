@@ -16,7 +16,7 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
     
     function isTeacherForCourse() {
@@ -95,6 +95,10 @@ service cloud.firestore {
       allow create: if isTeacherForEvent() || isAdmin();
       allow update: if isExistingTeacherForEvent() || isAdmin();
       allow delete: if isExistingTeacherForEvent() || isAdmin();
+    }
+
+    match /authorized_students/{studentId} {
+      allow read, write: if isAdmin();
     }
   }
 }
