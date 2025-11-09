@@ -94,11 +94,12 @@ service cloud.firestore {
       allow get, list: if isSignedIn();
       allow create: if isTeacherForEvent() || isAdmin();
       allow update: if isExistingTeacherForEvent() || isAdmin();
-      allow delete: if isExistingTeacherForEvent() || isAdmin();
+      delete: if isExistingTeacherForEvent() || isAdmin();
     }
 
     match /authorized_students/{studentId} {
-      allow read, write: if isAdmin();
+      allow list: if isAdmin();
+      allow get, create, update, delete: if isAdmin();
     }
   }
 }
