@@ -34,8 +34,9 @@ import { ScrollArea } from '../ui/scroll-area';
 import { AppUser } from '@/lib/placeholder-data';
 import { useAuth } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { KeyRound } from 'lucide-react';
+import { KeyRound, ShieldAlert } from 'lucide-react';
 import { sendPasswordResetEmail } from 'firebase/auth';
+import { Alert, AlertDescription } from '../ui/alert';
 
 const baseSchema = z.object({
   role: z.enum(['student', 'teacher', 'admin']),
@@ -90,6 +91,10 @@ export function EditUserDialog({ isOpen, setIsOpen, user, onUserUpdated }: EditU
     resolver: zodResolver(formSchema),
   });
 
+  const emailValue = useWatch({ control: form.control, name: 'email' });
+  const isEmailChanged = user && emailValue !== user.email;
+
+
   React.useEffect(() => {
     if (user) {
       const defaultValues: any = {
@@ -97,16 +102,13 @@ export function EditUserDialog({ isOpen, setIsOpen, user, onUserUpdated }: EditU
         photo: user.photo ?? '',
         telephone: (user as any).telephone ?? '',
         adresse: (user as any).adresse ?? '',
-        // Student specific
         matricule: (user as any).matricule ?? '',
         dateDeNaissance: (user as any).dateDeNaissance ?? '',
         lieuDeNaissance: (user as any).lieuDeNaissance ?? '',
         niveau: (user as any).niveau ?? undefined,
         filiere: (user as any).filiere ?? undefined,
-        // Teacher specific
         emailPro: (user as any).emailPro ?? '',
         specialite: (user as any).specialite ?? '',
-        // General optional
         genre: (user as any).genre ?? undefined,
       };
       form.reset(defaultValues);
@@ -211,14 +213,23 @@ export function EditUserDialog({ isOpen, setIsOpen, user, onUserUpdated }: EditU
                         </div>
 
                         <FormField control={form.control} name="username" render={({ field }) => ( <FormItem><FormLabel>Nom d'utilisateur</FormLabel><FormControl><Input placeholder="@jeandupont" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        
                         <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>Email</FormLabel><FormControl><Input placeholder="nom@exemple.com" type="email" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        {isEmailChanged && (
+                            <Alert variant="destructive">
+                                <ShieldAlert className="h-4 w-4" />
+                                <AlertDescription>
+                                La modification de l'e-mail affectera l'identifiant de connexion de l'utilisateur.
+                                </AlertDescription>
+                            </Alert>
+                        )}
                         
                         <FormField
                             control={form.control}
                             name="status"
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel>Statut</FormLabel>
+                                <FormLabel>Statut du compte</FormLabel>
                                 <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl>
                                     <SelectTrigger>
@@ -226,8 +237,8 @@ export function EditUserDialog({ isOpen, setIsOpen, user, onUserUpdated }: EditU
                                     </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        <SelectItem value="active">Actif</SelectItem>
-                                        <SelectItem value="inactive">Inactif</SelectItem>
+                                        <SelectItem value="active">Actif (peut se connecter)</SelectItem>
+                                        <SelectItem value="inactive">Inactif (ne peut pas se connecter)</SelectItem>
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />

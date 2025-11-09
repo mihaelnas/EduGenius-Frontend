@@ -64,7 +64,6 @@ export default function AdminUsersPage() {
         createdAt: new Date().toISOString(),
       } as AppUser;
       
-      // Ensure optional fields are not present if empty
       if (!userProfile.photo) {
         delete (userProfile as Partial<AppUser>).photo;
       }
@@ -79,11 +78,11 @@ export default function AdminUsersPage() {
 
     } catch (error: any) {
       console.error("Erreur de création d'utilisateur:", error);
-      if (error.code === 'auth/email-already-in-use') {
+       if (error.code === 'auth/email-already-in-use') {
         toast({
-          variant: 'destructive',
-          title: 'Échec de la création',
-          description: 'Cette adresse e-mail est déjà utilisée.',
+            variant: 'destructive',
+            title: 'Échec de la création',
+            description: 'Cette adresse e-mail est déjà utilisée.',
         });
       } else {
         toast({
@@ -97,9 +96,35 @@ export default function AdminUsersPage() {
 
 
   const handleUpdate = async (updatedUser: AppUser) => {
-    const userDocRef = doc(firestore, 'users', updatedUser.id);
     const { id, ...userData } = updatedUser;
+
+    // 1. Sync with Firebase Auth
+    try {
+      const response = await fetch(`/api/users/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: userData.email,
+          disabled: userData.status === 'inactive',
+        }),
+      });
+
+      if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.error || 'La mise à jour de l\'authentification a échoué.');
+      }
+    } catch (error: any) {
+      console.error("Échec de la mise à jour de l'authentification :", error);
+      toast({
+        variant: 'destructive',
+        title: 'Erreur de synchronisation',
+        description: `La mise à jour du compte d'authentification a échoué: ${error.message}`,
+      });
+      return; // Stop if auth update fails
+    }
     
+    // 2. Update Firestore document
+    const userDocRef = doc(firestore, 'users', id);
     if (userData.photo === '') {
       delete (userData as Partial<AppUser>).photo;
     }
@@ -125,12 +150,21 @@ export default function AdminUsersPage() {
     if (!selectedUser) return;
     
     const userId = selectedUser.id;
-    const userDocRef = doc(firestore, 'users', userId);
-    const batch = writeBatch(firestore);
 
     try {
-        // We will only delete Firestore data. The auth user will be orphaned
-        // but this avoids the server-side authentication issue.
+        // 1. Delete Auth User via API route
+        const response = await fetch(`/api/users/${userId}`, {
+            method: 'DELETE',
+        });
+        
+        if (!response.ok) {
+            const result = await response.json();
+            throw new Error(result.error || 'La suppression de l\'utilisateur d\'authentification a échoué.');
+        }
+
+        // 2. If Auth deletion is successful, proceed with Firestore cleanup in a batch
+        const batch = writeBatch(firestore);
+        const userDocRef = doc(firestore, 'users', userId);
 
         if (selectedUser.role === 'student') {
             const classesRef = collection(firestore, 'classes');
@@ -154,9 +188,7 @@ export default function AdminUsersPage() {
             const subjectsRef = collection(firestore, 'subjects');
             const qSubjects = query(subjectsRef, where('teacherId', '==', userId));
             const snapshotSubjects = await getDocs(qSubjects);
-            snapshotSubjects.forEach(doc => {
-                batch.update(doc.ref, { teacherId: '' });
-            });
+            snapshotSubjects.forEach(doc => batch.update(doc.ref, { teacherId: '' }));
 
             const coursesRef = collection(firestore, 'courses');
             const qCourses = query(coursesRef, where('teacherId', '==', userId));
@@ -169,22 +201,21 @@ export default function AdminUsersPage() {
             snapshotSchedule.forEach(doc => batch.delete(doc.ref));
         }
 
-        // Delete the user's profile from Firestore
         batch.delete(userDocRef);
         await batch.commit();
 
         toast({
             variant: 'destructive',
-            title: 'Utilisateur supprimé de la plateforme',
-            description: `Le profil de ${getDisplayName(selectedUser)} et toutes ses données associées ont été supprimés.`,
+            title: 'Utilisateur supprimé',
+            description: `Le compte et les données de ${getDisplayName(selectedUser)} ont été supprimés.`,
         });
 
     } catch (error: any) {
-        console.error("Échec de la suppression des données utilisateur:", error);
+        console.error("Échec de la suppression de l'utilisateur:", error);
         toast({
             variant: 'destructive',
             title: 'Erreur de suppression',
-            description: `La suppression des données a échoué: ${error.message}`,
+            description: `La suppression a échoué: ${error.message}`,
         });
     }
 
@@ -317,7 +348,7 @@ export default function AdminUsersPage() {
         setIsOpen={setIsDeleteDialogOpen}
         onConfirm={confirmDelete}
         itemName={selectedUser ? getDisplayName(selectedUser) : ''}
-        itemType="l'utilisateur"
+        itemType="l'utilisateur et son compte d'authentification"
       />
     </>
   );

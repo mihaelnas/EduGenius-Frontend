@@ -35,7 +35,7 @@ export function DeleteConfirmationDialog({
           <AlertDialogTitle>Êtes-vous absolument sûr(e) ?</AlertDialogTitle>
           <AlertDialogDescription>
             Cette action est irréversible. Cela supprimera définitivement {itemType}
-            {itemName && <span className="font-semibold"> "{itemName}"</span>}.
+            {itemName && <span className="font-semibold"> "{itemName}"</span>}, y compris toutes les données associées.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
