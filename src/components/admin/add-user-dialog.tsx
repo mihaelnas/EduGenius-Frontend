@@ -116,8 +116,11 @@ export function AddUserDialog({ isOpen, setIsOpen, onUserAdded }: AddUserDialogP
     name: 'role',
   });
 
-  function onSubmit(values: AddUserFormValues) {
-    onUserAdded(values);
+  async function onSubmit(values: AddUserFormValues) {
+     if (values.role === 'teacher' && values.specialite) {
+      values.specialite = values.specialite.toUpperCase();
+    }
+    await onUserAdded(values);
     setIsOpen(false);
     form.reset(initialValues);
   }
@@ -140,6 +143,13 @@ export function AddUserDialog({ isOpen, setIsOpen, onUserAdded }: AddUserDialogP
     const value = e.target.value;
     if (value) {
       form.setValue('lastName', value.toUpperCase(), { shouldValidate: true });
+    }
+  };
+
+  const handleSpecialiteBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value) {
+      form.setValue('specialite', value.toUpperCase(), { shouldValidate: true });
     }
   };
 
@@ -252,7 +262,7 @@ export function AddUserDialog({ isOpen, setIsOpen, onUserAdded }: AddUserDialogP
                                 <FormField control={form.control} name="genre" render={({ field }) => ( <FormItem><FormLabel>Genre</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Sélectionner..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="Homme">Homme</SelectItem><SelectItem value="Femme">Femme</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                                 <FormField control={form.control} name="telephone" render={({ field }) => ( <FormItem><FormLabel>Téléphone</FormLabel><FormControl><Input placeholder="0123456789" {...field} /></FormControl><FormMessage /></FormItem> )} />
                                 <FormField control={form.control} name="adresse" render={({ field }) => ( <FormItem><FormLabel>Adresse</FormLabel><FormControl><Input placeholder="123 Rue de Paris" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                                <FormField control={form.control} name="specialite" render={({ field }) => ( <FormItem><FormLabel>Spécialité</FormLabel><FormControl><Input placeholder="Mathématiques" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                <FormField control={form.control} name="specialite" render={({ field }) => ( <FormItem><FormLabel>Spécialité</FormLabel><FormControl><Input placeholder="Mathématiques" {...field} onBlur={handleSpecialiteBlur} /></FormControl><FormMessage /></FormItem> )} />
                             </>
                         )}
                         <FormField control={form.control} name="photo" render={({ field }) => ( <FormItem><FormLabel>URL de la photo (Optionnel)</FormLabel><FormControl><Input placeholder="https://..." {...field} /></FormControl><FormMessage /></FormItem> )} />
@@ -260,7 +270,7 @@ export function AddUserDialog({ isOpen, setIsOpen, onUserAdded }: AddUserDialogP
                 </ScrollArea>
                 <DialogFooter className='pt-4'>
                     <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>Annuler</Button>
-                    <Button type="submit" disabled={form.formState.isSubmitting}>Créer l'utilisateur</Button>
+                    <Button type="submit" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? "Création..." : "Créer l'utilisateur"}</Button>
                 </DialogFooter>
             </form>
         </Form>
