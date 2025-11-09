@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useCallback, useEffect } from 'react';
@@ -36,10 +35,12 @@ import { useFirestore } from '@/firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { debounce } from 'lodash';
 
+const semestres = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10'] as const;
+
 const formSchema = z.object({
   name: z.string().min(1, { message: 'Le nom de la matière est requis.' }),
   credit: z.coerce.number().min(1, { message: 'Les crédits sont requis.' }),
-  semestre: z.enum(['S1', 'S2']),
+  semestre: z.enum(semestres),
   photo: z.string().url({ message: 'Veuillez entrer une URL valide pour la photo.' }).optional().or(z.literal('')),
 });
 
@@ -187,8 +188,7 @@ export function AddSubjectDialog({ isOpen, setIsOpen, onSubjectAdded }: AddSubje
                             </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                                <SelectItem value="S1">S1</SelectItem>
-                                <SelectItem value="S2">S2</SelectItem>
+                                {semestres.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                             </SelectContent>
                         </Select>
                         <FormMessage />
