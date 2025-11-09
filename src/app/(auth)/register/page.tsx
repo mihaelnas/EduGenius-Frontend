@@ -29,6 +29,8 @@ import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/
 import { doc, setDoc } from 'firebase/firestore';
 import React from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const formSchema = z.object({
   firstName: z
@@ -56,6 +58,14 @@ const formSchema = z.object({
   password: z
     .string()
     .min(8, { message: 'Le mot de passe doit contenir au moins 8 caractères.' }),
+  matricule: z.string().min(1, { message: 'Le matricule est requis.' }),
+  dateDeNaissance: z.string().min(1, { message: 'La date de naissance est requise.' }),
+  lieuDeNaissance: z.string().min(1, { message: 'Le lieu de naissance est requis.' }),
+  genre: z.enum(['Homme', 'Femme'], { required_error: 'Le genre est requis.'}),
+  telephone: z.string().optional(),
+  niveau: z.enum(['L1', 'L2', 'L3', 'M1', 'M2'], { required_error: 'Le niveau est requis.'}),
+  filiere: z.enum(['IG', 'GB', 'ASR', 'GID', 'OCC'], { required_error: 'La filière est requise.'}),
+  photo: z.string().url({ message: 'Veuillez entrer une URL valide.' }).optional().or(z.literal('')),
 });
 
 export default function RegisterPage() {
@@ -73,6 +83,11 @@ export default function RegisterPage() {
       username: '@',
       email: '',
       password: '',
+      matricule: '',
+      dateDeNaissance: '',
+      lieuDeNaissance: '',
+      telephone: '',
+      photo: '',
     },
     mode: 'onBlur',
   });
@@ -91,8 +106,23 @@ export default function RegisterPage() {
         role: 'student' as const,
         status: 'inactive' as const,
         createdAt: new Date().toISOString(),
+        matricule: values.matricule,
+        dateDeNaissance: values.dateDeNaissance,
+        lieuDeNaissance: values.lieuDeNaissance,
+        genre: values.genre,
+        telephone: values.telephone,
+        niveau: values.niveau,
+        filiere: values.filiere,
+        photo: values.photo,
       };
       
+      if (!userProfile.photo) {
+        delete (userProfile as Partial<typeof userProfile>).photo;
+      }
+      if (!userProfile.telephone) {
+        delete (userProfile as Partial<typeof userProfile>).telephone;
+      }
+
       const userDocRef = doc(firestore, 'users', user.uid);
       
       setDoc(userDocRef, userProfile).catch(async (serverError) => {
@@ -150,110 +180,46 @@ export default function RegisterPage() {
   };
 
   return (
-    <Card className="w-full max-w-sm shadow-2xl">
+    <Card className="w-full max-w-2xl shadow-2xl">
       <CardHeader>
-        <CardTitle className="text-2xl font-headline">Créer un compte</CardTitle>
+        <CardTitle className="text-2xl font-headline">Créer un compte étudiant</CardTitle>
         <CardDescription>
           Rejoignez EduGenius aujourd'hui. C'est gratuit !
         </CardDescription>
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} noValidate>
-          <CardContent className="grid gap-4">
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="firstName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Prénom</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Jean"
-                        {...field}
-                        onBlur={handlePrenomBlur}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="lastName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nom</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="DUPONT"
-                        {...field}
-                        onBlur={handleNomBlur}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <FormField
-              control={form.control}
-              name="username"
-              render={({ field }) => (
-                <FormItem className="grid gap-2">
-                  <FormLabel>Nom d'utilisateur</FormLabel>
-                  <FormControl>
-                    <Input placeholder="@jeandupont" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem className="grid gap-2">
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="nom@exemple.com"
-                      type="email"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem className="grid gap-2">
-                  <FormLabel>Mot de passe</FormLabel>
-                   <div className="relative">
-                    <FormControl>
-                      <Input type={showPassword ? 'text' : 'password'} {...field} />
-                    </FormControl>
-                     <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
-                      onClick={() => setShowPassword(prev => !prev)}
-                    >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </Button>
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-          <CardFooter className="flex flex-col gap-4">
-            <Button className="w-full" type="submit">
-              S'inscrire
+          <ScrollArea className="h-[60vh] lg:h-auto">
+            <CardContent className="grid gap-4 px-6">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <FormField control={form.control} name="firstName" render={({ field }) => ( <FormItem><FormLabel>Prénom</FormLabel><FormControl><Input placeholder="Jean" {...field} onBlur={handlePrenomBlur} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="lastName" render={({ field }) => ( <FormItem><FormLabel>Nom</FormLabel><FormControl><Input placeholder="DUPONT" {...field} onBlur={handleNomBlur} /></FormControl><FormMessage /></FormItem> )} />
+                </div>
+                <FormField control={form.control} name="username" render={({ field }) => ( <FormItem><FormLabel>Nom d'utilisateur</FormLabel><FormControl><Input placeholder="@jeandupont" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>Email</FormLabel><FormControl><Input placeholder="nom@exemple.com" type="email" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="password" render={({ field }) => ( <FormItem><FormLabel>Mot de passe</FormLabel><div className="relative"><FormControl><Input type={showPassword ? 'text' : 'password'} {...field} /></FormControl><Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground" onClick={() => setShowPassword(prev => !prev)}>{showPassword ? <EyeOff size={16} /> : <Eye size={16} />}</Button></div><FormMessage /></FormItem> )} />
+                
+                <hr className="my-2 border-border" />
+                
+                <FormField control={form.control} name="matricule" render={({ field }) => ( <FormItem><FormLabel>Matricule</FormLabel><FormControl><Input placeholder="E1234567" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <FormField control={form.control} name="dateDeNaissance" render={({ field }) => ( <FormItem><FormLabel>Date de Naissance</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="lieuDeNaissance" render={({ field }) => ( <FormItem><FormLabel>Lieu de Naissance</FormLabel><FormControl><Input placeholder="Dakar" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <FormField control={form.control} name="genre" render={({ field }) => ( <FormItem><FormLabel>Genre</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Sélectionner le genre" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Homme">Homme</SelectItem><SelectItem value="Femme">Femme</SelectItem></SelectContent></Select><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="telephone" render={({ field }) => ( <FormItem><FormLabel>Téléphone <span className='text-xs text-muted-foreground'>(Optionnel)</span></FormLabel><FormControl><Input placeholder="77 123 45 67" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <FormField control={form.control} name="niveau" render={({ field }) => ( <FormItem><FormLabel>Niveau</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Sélectionner le niveau" /></SelectTrigger></FormControl><SelectContent>{['L1', 'L2', 'L3', 'M1', 'M2'].map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="filiere" render={({ field }) => ( <FormItem><FormLabel>Filière</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Sélectionner la filière" /></SelectTrigger></FormControl><SelectContent>{['IG', 'GB', 'ASR', 'GID', 'OCC'].map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+                </div>
+                 <FormField control={form.control} name="photo" render={({ field }) => ( <FormItem><FormLabel>URL de la photo <span className='text-xs text-muted-foreground'>(Optionnel)</span></FormLabel><FormControl><Input placeholder="https://..." {...field} /></FormControl><FormMessage /></FormItem> )} />
+            </CardContent>
+          </ScrollArea>
+          <CardFooter className="flex flex-col gap-4 px-6 pb-6 pt-4">
+            <Button className="w-full" type="submit" disabled={form.formState.isSubmitting}>
+              {form.formState.isSubmitting ? "Inscription en cours..." : "S'inscrire"}
             </Button>
             <div className="text-center text-sm text-muted-foreground">
               Vous avez déjà un compte ?{' '}
