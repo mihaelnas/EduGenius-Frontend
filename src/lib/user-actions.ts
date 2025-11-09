@@ -5,16 +5,9 @@ import * as admin from 'firebase-admin';
 
 // Structure of the service account credentials
 interface ServiceAccount {
-  type: string;
-  project_id: string;
-  private_key_id: string;
-  private_key: string;
-  client_email: string;
-  client_id: string;
-  auth_uri: string;
-  token_uri: string;
-  auth_provider_x509_cert_url: string;
-  client_x509_cert_url: string;
+  projectId: string;
+  clientEmail: string;
+  privateKey: string;
 }
 
 
@@ -33,7 +26,7 @@ export async function deleteUser(uid: string): Promise<{ success: boolean; error
         projectId: process.env.GCP_PROJECT_ID!,
         clientEmail: process.env.GCP_CLIENT_EMAIL!,
         privateKey: process.env.GCP_PRIVATE_KEY!.replace(/\\n/g, '\n'),
-      } as ServiceAccount;
+      };
 
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
