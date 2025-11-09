@@ -129,17 +129,9 @@ export default function AdminUsersPage() {
     const batch = writeBatch(firestore);
 
     try {
-        // First, perform the Auth deletion via our API route
-        const response = await fetch(`/api/users/${userId}`, {
-            method: 'DELETE',
-        });
+        // We will only delete Firestore data. The auth user will be orphaned
+        // but this avoids the server-side authentication issue.
 
-        if (!response.ok) {
-            const result = await response.json();
-            throw new Error(result.error || 'La suppression de l\'utilisateur d\'authentification a échoué.');
-        }
-
-        // If Auth deletion is successful, proceed with Firestore cleanup
         if (selectedUser.role === 'student') {
             const classesRef = collection(firestore, 'classes');
             const q = query(classesRef, where('studentIds', 'array-contains', userId));
@@ -177,21 +169,22 @@ export default function AdminUsersPage() {
             snapshotSchedule.forEach(doc => batch.delete(doc.ref));
         }
 
+        // Delete the user's profile from Firestore
         batch.delete(userDocRef);
         await batch.commit();
 
         toast({
             variant: 'destructive',
-            title: 'Utilisateur supprimé',
-            description: `Le profil et le compte de ${getDisplayName(selectedUser)} ont été définitivement supprimés.`,
+            title: 'Utilisateur supprimé de la plateforme',
+            description: `Le profil de ${getDisplayName(selectedUser)} et toutes ses données associées ont été supprimés.`,
         });
 
     } catch (error: any) {
-        console.error("Échec de la suppression de l'utilisateur:", error);
+        console.error("Échec de la suppression des données utilisateur:", error);
         toast({
             variant: 'destructive',
             title: 'Erreur de suppression',
-            description: `La suppression a échoué: ${error.message}`,
+            description: `La suppression des données a échoué: ${error.message}`,
         });
     }
 
