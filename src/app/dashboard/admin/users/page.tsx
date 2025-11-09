@@ -25,7 +25,6 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { firebaseConfig } from '@/firebase/config';
-import { deleteUser } from '@/lib/user-actions';
 
 const roleNames: Record<AppUser['role'], string> = {
   admin: 'Administrateur',
@@ -130,9 +129,13 @@ export default function AdminUsersPage() {
     const batch = writeBatch(firestore);
 
     try {
-        // First, perform the server-side Auth deletion
-        const result = await deleteUser(userId);
-        if (!result.success) {
+        // First, perform the Auth deletion via our API route
+        const response = await fetch(`/api/users/${userId}`, {
+            method: 'DELETE',
+        });
+
+        if (!response.ok) {
+            const result = await response.json();
             throw new Error(result.error || 'La suppression de l\'utilisateur d\'authentification a échoué.');
         }
 
